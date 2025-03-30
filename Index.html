@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="Estilos.css">
+    <title>Document</title>
+</head>
+<body>
+    <section>
+        <header>
+            <a href="#" class="logo">GYM CORONADO</a>
+            <ul class="navegacion">
+                <li><a href="#" class="active">Inicio</a></li>
+                <li><a href="Consejos.html">Consejos Fitnes </a></li>
+                <li><a href="Maquinaria.html">Como usar el equipo del gym </a></li>
+                <li><a href="Costos.html">Costos </a></li>
+                <li><a href="">Visión & Valores</a></li>
+                <li><a href="#">Contáctanos</a></li>
+                <li> 
+            </ul>
+        </header>
+        <div class="contenido">
+            <div class="cajaTexto">
+                <h2>¡¡Bienvenidos!!</h2>
+                <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Aperiam expedita, 
+                dolor voluptate asperiores reprehenderit iure inventore vitae repudiandae blanditiis commodi, 
+                consectetur, voluptas recusandae a doloribus? Neque repudiandae repellat repellendus veniam!</p>
+                <a href="#">Leer más</a>
+            </div>
+    
+        </div>
+
+        <div class="carousel-container">
+            <div class="carousel">
+                <div class="carousel-slide active">
+                    <img src="https://imgs.search.brave.com/gvE-uS8ZlYvKAG4hdhLmDYAXeWHp7RuRnBFFmi9dT1c/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9idXJz/dC5zaG9waWZ5Y2Ru/LmNvbS9waG90b3Mv/Z3ltLXdlaWdodHMu/anBnP3dpZHRoPTEw/MDAmZm9ybWF0PXBq/cGcmZXhpZj0wJmlw/dGM9MA" alt="Gimnasio 1">
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://imgs.search.brave.com/6Nh1V79ADvNHiPa9LWUscjVfdkT5BT_5vFCn11DXCsU/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAxLzA4Lzk5LzIw/LzM2MF9GXzEwODk5/MjA5NF9TWjVXU0VS/WUJVemZJMnVvb2t3/dkZRZEZjNkRTdDlJ/Qi5qcGc" alt="Gimnasio 2">
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://imgs.search.brave.com/x91MDICMy3pAAzH4iPdHti-miqsUYOTnMnyonwjk-tg/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzAwLzQ2LzQ5Lzkx/LzM2MF9GXzQ2NDk5/MTE3X0hQMVNYMEdr/b1JFZU10WHBxWERZ/bVlzWGJ2WkdaczNo/LmpwZw" alt="Gimnasio 3">
+                </div>
+                <button class="carousel-btn prev" onclick="moveSlide(-1)">&#10094;</button>
+                <button class="carousel-btn next" onclick="moveSlide(1)">&#10095;</button>
+            </div>
+            <div class="carousel-dots">
+                <!-- Los puntos se generarán con JavaScript -->
+            </div>
+        </div>
+    </section>
+
+
+    <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dotsContainer = document.querySelector('.carousel-dots');
+    
+    // Crear puntos indicadores
+    slides.forEach((_, index) => {
+        const dot = document.createElement('span');
+        dot.classList.add('dot');
+        if(index === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => goToSlide(index));
+        dotsContainer.appendChild(dot);
+    });
+    
+    const dots = document.querySelectorAll('.dot');
+    
+    function updateCarousel() {
+        slides.forEach((slide, index) => {
+            slide.classList.toggle('active', index === currentSlide);
+        });
+        
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentSlide);
+        });
+    }
+    
+    function moveSlide(n) {
+        currentSlide = (currentSlide + n + slides.length) % slides.length;
+        updateCarousel();
+    }
+    
+    function goToSlide(n) {
+        currentSlide = n;
+        updateCarousel();
+    }
+    
+    // Auto-avance cada 5 segundos
+    setInterval(() => moveSlide(1), 5000);
+</script>
+</body>
+</html> 
+
