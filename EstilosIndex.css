@@ -38,6 +38,7 @@ header {
     background-color: rgba(10, 25, 47, 0.9);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(8, 35, 190, 0.1);
+    transition: all 0.3s ease;
 }
 
 header .logo {
@@ -54,16 +55,18 @@ header .logo:hover {
     text-shadow: 0 0 10px rgba(134, 71, 71, 0.5);
 }
 
-header ul {
+/* Navegación normal */
+.navegacion {
     display: flex;
     gap: 15px;
+    transition: all 0.5s ease;
 }
 
-header ul li {
+.navegacion li {
     list-style: none;
 }
 
-header ul li a {
+.navegacion li a {
     color: #ccd6f6;
     font-weight: 600;
     font-size: 1.1em;
@@ -74,7 +77,7 @@ header ul li a {
     position: relative;
 }
 
-header ul li a::before {
+.navegacion li a::before {
     content: '';
     position: absolute;
     width: 0;
@@ -85,14 +88,34 @@ header ul li a::before {
     transition: width 0.3s ease;
 }
 
-header ul li a:hover::before {
+.navegacion li a:hover::before {
     width: 100%;
 }
 
-header ul li a.active,
-header ul li a:hover {
+.navegacion li a.active,
+.navegacion li a:hover {
     color: #717379;
     background-color: rgba(11, 83, 240, 0.1);
+}
+
+/* Menú Hamburguesa - Solo visible en móviles */
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 21px;
+    cursor: pointer;
+    z-index: 1100;
+}
+
+.menu-toggle span {
+    display: block;
+    height: 3px;
+    width: 100%;
+    background-color: #254ECB;
+    border-radius: 3px;
+    transition: all 0.3s ease;
 }
 
 /* Contenido principal */
@@ -137,26 +160,6 @@ header ul li a:hover {
     background: rgba(102, 105, 105, 0.1);
     transform: translateY(-3px);
     box-shadow: 0 10px 20px rgba(107, 109, 108, 0.1);
-}
-
-/* Efectos de carga */
-body.loaded {
-    transition: all 0.5s ease;
-}
-
-/* Responsive (opcional) */
-@media (max-width: 768px) {
-    section {
-        padding: 100px 40px;
-    }
-    
-    header {
-        padding: 20px 40px;
-    }
-    
-    .contenido .cajaTexto h2 {
-        font-size: 2.5em;
-    }
 }
 
 /* Estilos del Carrusel */
@@ -244,12 +247,12 @@ body.loaded {
 }
 
 footer {
-    background-color: #061121; /* Un poco más oscuro que el fondo principal */
-    color: #ccd6f6; /* Texto claro */
+    background-color: #061121;
+    color: #ccd6f6;
     text-align: center;
     padding: 2.5rem 0;
     margin-top: 3rem;
-    border-top: 1px solid rgba(100, 149, 237, 0.1); /* Borde sutil azul */
+    border-top: 1px solid rgba(100, 149, 237, 0.1);
     position: relative;
     font-size: 0.9rem;
 }
@@ -270,32 +273,122 @@ footer p {
     letter-spacing: 0.5px;
 }
 
-/* Opcional: Añadir iconos sociales */
-.footer-social {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
+/* ====================== */
+/* MEDIA QUERIES RESPONSIVE */
+/* ====================== */
 
-.footer-social a {
-    color: #ccd6f6;
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
-}
-
-.footer-social a:hover {
-    color: #254ECB;
-    transform: translateY(-3px);
-}
-
-/* Versión responsive */
-@media (max-width: 768px) {
-    footer {
-        padding: 2rem 1rem;
+/* Tablets (768px - 991px) */
+@media (max-width: 991px) {
+    section {
+        padding: 100px 60px;
     }
     
-    .footer-social {
-        gap: 1rem;
+    header {
+        padding: 20px 60px;
+    }
+    
+    .contenido .cajaTexto h2 {
+        font-size: 2.8em;
+    }
+    
+    .carousel {
+        height: 350px;
+    }
+}
+
+/* Móviles grandes (576px - 767px) */
+@media (max-width: 767px) {
+    section {
+        padding: 100px 40px;
+        flex-direction: column;
+    }
+    
+    .contenido {
+        margin-bottom: 50px;
+    }
+    
+    .carousel-container {
+        position: relative;
+        right: auto;
+        width: 100%;
+        margin-top: 30px;
+    }
+    
+    /* Menú Hamburguesa */
+    .menu-toggle {
+        display: flex;
+    }
+    
+    .navegacion {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        max-width: 300px;
+        height: 100vh;
+        background-color: rgba(10, 25, 47, 0.95);
+        backdrop-filter: blur(10px);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 30px;
+        transition: right 0.5s ease;
+        z-index: 1000;
+        padding-top: 80px;
+    }
+    
+    .navegacion.active {
+        right: 0;
+    }
+    
+    .navegacion li a {
+        font-size: 1.3em;
+        padding: 15px 30px;
+    }
+    
+    /* Animación del botón hamburguesa */
+    .menu-toggle.active span:nth-child(1) {
+        transform: translateY(9px) rotate(45deg);
+    }
+    
+    .menu-toggle.active span:nth-child(2) {
+        opacity: 0;
+    }
+    
+    .menu-toggle.active span:nth-child(3) {
+        transform: translateY(-9px) rotate(-45deg);
+    }
+}
+
+/* Móviles pequeños (hasta 575px) */
+@media (max-width: 575px) {
+    section {
+        padding: 100px 20px;
+    }
+    
+    header {
+        padding: 15px 20px;
+    }
+    
+    .contenido .cajaTexto h2 {
+        font-size: 2em;
+    }
+    
+    .contenido .cajaTexto a {
+        padding: 10px 20px;
+    }
+    
+    .carousel {
+        height: 250px;
+    }
+    
+    .carousel-btn {
+        padding: 10px;
+        font-size: 1.2rem;
+    }
+    
+    .dot {
+        width: 10px;
+        height: 10px;
     }
 }
