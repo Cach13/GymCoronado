@@ -1,0 +1,316 @@
+/* Variables de color - Tema oscuro con acentos azules */
+:root {
+    --primary: #254ECB;
+    --primary-light: rgba(37, 78, 203, 0.1);
+    --secondary: #FF6B00;
+    --dark: #0A1A2F;
+    --darker: #061121;
+    --light: #ccd6f6;
+    --lighter: #e6f1ff;
+    --gray: #6C757D;
+}
+
+/* Estilos base */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--dark);
+    color: var(--light);
+    line-height: 1.6;
+}
+
+.container {
+    width: 85%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+/* Hero Section - Estilo oscuro con efecto de vidrio */
+.hero {
+    background: linear-gradient(rgba(10, 26, 47, 0.9), rgba(10, 26, 47, 0.9)), 
+                url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+    background-size: cover;
+    background-position: center;
+    height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+}
+
+.hero-content {
+    background: rgba(23, 42, 69, 0.7);
+    backdrop-filter: blur(5px);
+    padding: 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(100, 149, 237, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--lighter);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.hero-subtitle {
+    font-size: 1.3rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+/* Secciones comunes */
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.section-header h2 {
+    font-size: 2.3rem;
+    color: var(--lighter);
+    margin-bottom: 1rem;
+    position: relative;
+    display: inline-block;
+}
+
+.section-header h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: var(--primary);
+}
+
+.icon-box {
+    background: rgba(37, 78, 203, 0.2);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    border: 2px solid var(--primary);
+}
+
+.icon {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+/* Misión Section */
+.mision-section {
+    padding: 5rem 0;
+    background: rgba(23, 42, 69, 0.5);
+}
+
+.content-box {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+}
+
+.content-box p {
+    flex: 1;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--light);
+}
+
+.highlight {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.image-container {
+    flex: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-left: 3px solid var(--primary);
+}
+
+.image-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.5s ease;
+}
+
+.image-container:hover img {
+    transform: scale(1.05);
+}
+
+/* Valores Section */
+.valores-section {
+    padding: 5rem 0;
+    background: var(--darker);
+}
+
+.valores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.valor-card {
+    background: rgba(10, 25, 47, 0.7);
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(100, 149, 237, 0.1);
+}
+
+.valor-card:hover {
+    transform: translateY(-10px);
+    background: rgba(10, 25, 47, 0.9);
+    box-shadow: 0 10px 20px rgba(37, 78, 203, 0.2);
+    border-color: rgba(100, 149, 237, 0.3);
+}
+
+.valor-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(37, 78, 203, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--primary);
+    font-size: 1.5rem;
+    border: 1px solid var(--primary);
+}
+
+.valor-card h3 {
+    color: var(--lighter);
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.valor-card p {
+    color: var(--light);
+    font-size: 0.95rem;
+}
+
+/* CTA Section */
+.cta-section {
+    background: linear-gradient(135deg, var(--primary), #1a3fd3);
+    color: white;
+    padding: 4rem 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-section::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+.cta-section::after {
+    content: '';
+    position: absolute;
+    bottom: -30px;
+    right: -30px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+.cta-section h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+    color: var(--lighter);
+}
+
+.cta-button {
+    display: inline-block;
+    background-color: var(--secondary);
+    color: var(--dark);
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+    border: none;
+    cursor: pointer;
+}
+
+.cta-button:hover {
+    background-color: #e05d00;
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(224, 93, 0, 0.4);
+}
+
+/* Footer */
+footer {
+    background-color: var(--darker);
+    color: var(--light);
+    text-align: center;
+    padding: 2rem 0;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(100, 149, 237, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 2.2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .content-box {
+        flex-direction: column;
+    }
+    
+    .section-header h2 {
+        font-size: 1.8rem;
+    }
+    
+    .valores-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        height: 50vh;
+    }
+    
+    .hero-content {
+        padding: 20px;
+    }
+    
+    .valores-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .cta-section h2 {
+        font-size: 1.6rem;
+    }
+}

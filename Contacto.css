@@ -1,0 +1,135 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0A1A2F;
+    color: #ccd6f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+}
+
+.whatsapp-container {
+    background: rgba(23, 42, 69, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+}
+
+.whatsapp-container p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    color: #254ECB;
+}
+
+.whatsapp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #25D366;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+}
+
+.whatsapp-btn:hover {
+    background-color: #128C7E;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(18, 140, 126, 0.4);
+}
+
+.whatsapp-btn img {
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+}
+
+/* Efecto para el logo de WhatsApp */
+.whatsapp-logo {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.whatsapp-logo:hover {
+    transform: rotate(15deg) scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .whatsapp-container {
+        padding: 20px;
+    }
+    
+    .whatsapp-logo {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+footer {
+    background-color: #0A1A2F; /* Un poco más oscuro que el fondo principal */
+    color: #ccd6f6; /* Texto claro */
+    text-align: center;
+    padding: 2.5rem 0;
+    margin-top: 3rem;
+    border-top: 1px solid rgba(100, 149, 237, 0.1); /* Borde sutil azul */
+    position: relative;
+    font-size: 0.9rem;
+}
+
+footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #254ECB, transparent);
+}
+
+footer p {
+    margin: 0;
+    padding: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Opcional: Añadir iconos sociales */
+.footer-social {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-social a {
+    color: #ccd6f6;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.footer-social a:hover {
+    color: #254ECB;
+    transform: translateY(-3px);
+}
+
+/* Versión responsive */
+@media (max-width: 768px) {
+    footer {
+        padding: 2rem 1rem;
+    }
+    
+    .footer-social {
+        gap: 1rem;
+    }
+}

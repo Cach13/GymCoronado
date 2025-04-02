@@ -1,0 +1,146 @@
+/* Estilos básicos - Solo colores y tipografía */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0A1A2F;
+    color: #ccd6f6;
+    margin: 0;
+    padding: 20px;
+}
+
+#costos {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px;
+    background: rgba(23, 42, 69, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+#costos h2 {
+    color: #254ECB;
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid rgba(37, 78, 203, 0.3);
+    padding-bottom: 10px;
+}
+
+.tablas-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Posicionamiento específico para cada tabla */
+.table1 {
+    order: 3; /* Derecha */
+    background: rgba(10, 25, 47, 0.5);
+}
+
+.table2 {
+    order: 2; /* Centro */
+    background: rgba(10, 25, 47, 0.7);
+}
+
+.table3 {
+    order: 1; /* Izquierda */
+    background: rgba(10, 25, 47, 0.5);
+}
+
+.table1, .table2, .table3 {
+    width: 30%;
+    border-collapse: collapse;
+    border: 1px solid rgba(204, 214, 246, 0.1);
+    transition: all 0.3s ease;
+}
+
+#costos th {
+    background-color: #254ECB;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+#costos td {
+    padding: 15px;
+    text-align: center;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+/* Efecto hover para las tablas */
+.table1:hover, .table2:hover, .table3:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(37, 78, 203, 0.3);
+}
+
+/* Diseño responsive */
+@media (max-width: 768px) {
+    .tablas-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .table1, .table2, .table3 {
+        width: 80%;
+        margin-bottom: 20px;
+        order: 0; /* Resetear el orden en móvil */
+    }
+}
+
+footer {
+    background-color: #0A1A2F; /* Un poco más oscuro que el fondo principal */
+    color: #ccd6f6; /* Texto claro */
+    text-align: center;
+    padding: 2.5rem 0;
+    margin-top: 3rem;
+    border-top: 1px solid rgba(100, 149, 237, 0.1); /* Borde sutil azul */
+    position: relative;
+    font-size: 0.9rem;
+}
+
+footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #254ECB, transparent);
+}
+
+footer p {
+    margin: 0;
+    padding: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Opcional: Añadir iconos sociales */
+.footer-social {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-social a {
+    color: #ccd6f6;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.footer-social a:hover {
+    color: #254ECB;
+    transform: translateY(-3px);
+}
+
+/* Versión responsive */
+@media (max-width: 768px) {
+    footer {
+        padding: 2rem 1rem;
+    }
+    
+    .footer-social {
+        gap: 1rem;
+    }
+}
