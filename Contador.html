@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="EstilosContador.css">
+    <title>Contador de Calorías</title>
+    
+</head>
+<body>
+    <header>
+        <a href="Index.html" class="logo">CORONADO GYM</a>
+        
+        <!-- Botón del menú hamburguesa -->
+        <div class="menu-toggle" id="mobile-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        
+        <ul class="navegacion" id="navegacion">
+            <li><a href="Index.html" class="active">Inicio</a></li>
+            <li><a href="Consejos.html">Consejos Fitnes</a></li>
+            <li><a href="Maquinaria.html">Como usar el equipo </a></li>
+            <li><a href="Costos.html">Costos</a></li>
+            <li><a href="mision-valores.html">Visión & Valores</a></li>
+            <li><a href="Contactanos.html">Contáctanos</a></li>
+        </ul>
+    </header>
+
+    <div class="container">
+        <h1>🍎 Contador de Calorías</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Calorías Totales</h3>
+                <div class="stat-value" id="totalCalories">0</div>
+                <small>kcal</small>
+            </div>
+            <div class="stat-card">
+                <h3>Alimentos Consumidos</h3>
+                <div class="stat-value" id="totalFoods">0</div>
+                <small>elementos</small>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <h2 style="margin-bottom: 20px; color: #333;">Agregar Alimento</h2>
+            <div class="form-group">
+                <div>
+                    <label for="foodName">Nombre del Alimento</label>
+                    <div class="search-container">
+                        <input type="text" id="foodName" placeholder="Ej: Manzana, Pollo, Arroz...">
+                        <div id="suggestions" class="suggestions" style="display: none;"></div>
+                    </div>
+                </div>
+                <div>
+                    <label for="quantity">Cantidad</label>
+                    <input type="number" id="quantity" value="1" min="0.1" step="0.1">
+                </div>
+                <div>
+                    <label for="unit">Unidad</label>
+                    <select id="unit">
+                        <option value="gramos">gramos</option>
+                        <option value="unidad">unidad</option>
+                        <option value="taza">taza</option>
+                        <option value="cucharada">cucharada</option>
+                        <option value="rebanada">rebanada</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn" onclick="addFood()">Agregar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="food-list">
+            <h2 style="margin-bottom: 20px; color: #333;">Alimentos del Día</h2>
+            <div id="foodList">
+                <p style="text-align: center; color: #666; font-style: italic;">No has agregado ningún alimento aún</p>
+            </div>
+            <button class="btn btn-danger reset-btn" onclick="resetDay()">Reiniciar Día</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>© Cach. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="FuncionalidadContador.js"></script>
+      
+    
+</body>
+</html>
