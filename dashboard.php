@@ -2,7 +2,6 @@
 require_once 'config/config.php';
 require_once 'user/User.php';
 
-
 gym_check_permission('cliente');
 
 // Verificar que el usuario esté logueado
@@ -13,6 +12,20 @@ if (!gym_is_logged_in()) {
 $user = gym_get_logged_in_user();
 $userObj = new User();
 $userStats = $userObj->get_user_stats($user['id']);
+
+// Calcular días restantes de membresía
+$diasRestantes = 0;
+if (!empty($user['fecha_vencimiento'])) {
+    $fechaVencimiento = new DateTime($user['fecha_vencimiento']);
+    $fechaActual = new DateTime();
+    $diferencia = $fechaActual->diff($fechaVencimiento);
+    
+    if ($fechaVencimiento > $fechaActual) {
+        $diasRestantes = $diferencia->days;
+    } else {
+        $diasRestantes = -$diferencia->days; // Negativo si ya venció
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -92,6 +105,15 @@ $userStats = $userObj->get_user_stats($user['id']);
             color: #667eea;
             transform: translateY(-2px);
         }
+        .membresia-vencida {
+            background: linear-gradient(135deg, #dc3545, #c82333) !important;
+        }
+        .membresia-pronto-vencer {
+            background: linear-gradient(135deg, #ffc107, #e0a800) !important;
+        }
+        .membresia-activa {
+            background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+        }
     </style>
 </head>
 <body>
@@ -116,6 +138,7 @@ $userStats = $userObj->get_user_stats($user['id']);
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="pagos.php"><i class="fas fa-credit-card me-2"></i>Pagos</a></li>
                             <li><a class="dropdown-item" href="settings.php"><i class="fas fa-cog me-2"></i>Configuración</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
@@ -154,6 +177,12 @@ $userStats = $userObj->get_user_stats($user['id']);
                             <a class="nav-link" href="progreso.php">
                                 <i class="fas fa-chart-line me-2"></i>
                                 Progreso
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="pagos.php">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Pagos
                             </a>
                         </li>
                         <li class="nav-item">
@@ -225,12 +254,40 @@ $userStats = $userObj->get_user_stats($user['id']);
                     <div class="col-md-3 mb-3">
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
-                                <div class="stat-icon" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
-                                    <i class="fas fa-dumbbell"></i>
+                                <?php
+                                $iconClass = 'membresia-activa';
+                                $iconSymbol = 'fas fa-calendar-alt';
+                                
+                                if ($diasRestantes < 0) {
+                                    $iconClass = 'membresia-vencida';
+                                    $iconSymbol = 'fas fa-exclamation-triangle';
+                                } elseif ($diasRestantes <= 7) {
+                                    $iconClass = 'membresia-pronto-vencer';
+                                    $iconSymbol = 'fas fa-clock';
+                                }
+                                ?>
+                                <div class="stat-icon <?php echo $iconClass; ?>">
+                                    <i class="<?php echo $iconSymbol; ?>"></i>
                                 </div>
                                 <div class="ms-3">
-                                    <h3 class="mb-0"><?php echo $userStats['rutinas_completadas']; ?></h3>
-                                    <small class="text-muted">Rutinas Completadas</small>
+                                    <h3 class="mb-0">
+                                        <?php 
+                                        if ($diasRestantes < 0) {
+                                            echo 'Vencida';
+                                        } else {
+                                            echo $diasRestantes;
+                                        }
+                                        ?>
+                                    </h3>
+                                    <small class="text-muted">
+                                        <?php 
+                                        if ($diasRestantes < 0) {
+                                            echo 'Membresía';
+                                        } else {
+                                            echo 'Días Restantes';
+                                        }
+                                        ?>
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -250,6 +307,29 @@ $userStats = $userObj->get_user_stats($user['id']);
                         </div>
                     </div>
                 </div>
+
+                <!-- Alerta de membresía si está próxima a vencer o vencida -->
+                <?php if ($diasRestantes <= 7): ?>
+                <div class="alert <?php echo ($diasRestantes < 0) ? 'alert-danger' : 'alert-warning'; ?> alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>
+                        <?php if ($diasRestantes < 0): ?>
+                            ¡Tu membresía ha vencido!
+                        <?php else: ?>
+                            ¡Tu membresía vence pronto!
+                        <?php endif; ?>
+                    </strong>
+                    <?php if ($diasRestantes < 0): ?>
+                        Tu membresía venció hace <?php echo abs($diasRestantes); ?> días. Renueva tu membresía para seguir disfrutando de todos los servicios.
+                    <?php else: ?>
+                        Te quedan solo <?php echo $diasRestantes; ?> días. Renueva tu membresía antes de que expire.
+                    <?php endif; ?>
+                    <a href="pagos.php" class="btn btn-sm <?php echo ($diasRestantes < 0) ? 'btn-light' : 'btn-warning'; ?> ms-2">
+                        Renovar Ahora
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
 
                 <!-- Quick Actions -->
                 <div class="row mb-4">
@@ -284,11 +364,11 @@ $userStats = $userObj->get_user_stats($user['id']);
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="medidas.php" class="quick-action-btn">
+                        <a href="pagos.php" class="quick-action-btn">
                             <div class="text-center">
-                                <i class="fas fa-ruler fa-2x mb-2" style="color: #6f42c1;"></i>
-                                <h6>Tomar Medidas</h6>
-                                <small class="text-muted">Registrar progreso</small>
+                                <i class="fas fa-credit-card fa-2x mb-2" style="color: #6f42c1;"></i>
+                                <h6>Renovar Membresía</h6>
+                                <small class="text-muted">Gestionar pagos</small>
                             </div>
                         </a>
                     </div>
