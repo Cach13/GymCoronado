@@ -1,6 +1,6 @@
 <?php
 require_once 'config/config.php';
-require_once 'user/User.php';
+require_once 'config/User.php';
 
 // Si ya está logueado, redirigir al dashboard
 if (gym_is_logged_in()) {
@@ -45,7 +45,7 @@ $alert = gym_get_alert();
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg,rgb(111, 125, 184) 0%,rgb(61, 78, 153) 100%);
+            background: linear-gradient(135deg,rgb(6, 21, 66) 0%,rgb(13, 37, 132) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -219,7 +219,6 @@ $alert = gym_get_alert();
                                 <strong>Credenciales de prueba:</strong><br>
                                 <strong>Admin:</strong> admin@gym.com / admin123<br>
                                 <strong>Cliente:</strong> cliente@gym.com / cliente123<br>
-                                <strong>Entrenador:</strong> entrenador@gym.com / entrenador123
                             </small>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 <?php
 require_once 'config/config.php';
-require_once 'user/User.php';
+require_once 'config/User.php';
 
 // Si ya está logueado, redirigir al dashboard
 if (gym_is_logged_in()) {
@@ -65,7 +65,7 @@ if ($_POST) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background:linear-gradient(135deg,rgb(6, 21, 66) 0%,rgb(13, 37, 132) 100%);
             min-height: 100vh;
             padding: 2rem 0;
         }
@@ -94,7 +94,7 @@ if ($_POST) {
             color: #666;
         }
         .btn-register {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg,rgb(15, 46, 185) 0%,rgb(33, 60, 179) 100%);
             border: none;
             padding: 12px;
             font-weight: 600;
@@ -106,7 +106,7 @@ if ($_POST) {
         }
         .gym-icon {
             font-size: 3rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg,rgb(15, 46, 185) 0%,rgb(33, 60, 179) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;

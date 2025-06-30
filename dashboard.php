@@ -1,6 +1,6 @@
 <?php
 require_once 'config/config.php';
-require_once 'user/User.php';
+require_once 'config/User.php';
 
 gym_check_permission('cliente');
 
