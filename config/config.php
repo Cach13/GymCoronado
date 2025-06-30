@@ -7,7 +7,7 @@ define('DB_NAME', 'gym_app');
 
 // Configuración de la aplicación
 define('SITE_URL', 'http://localhost/gym_app/');
-define('SITE_NAME', 'Gym App');
+define('SITE_NAME', 'Coronado Gym');
 
 // Configuración de sesiones
 ini_set('session.cookie_httponly', 1);

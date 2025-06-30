@@ -45,13 +45,13 @@ $alert = gym_get_alert();
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg,rgb(55, 82, 199) 0%,rgb(180, 185, 193) 100%);
+            background: linear-gradient(135deg,rgb(111, 125, 184) 0%,rgb(61, 78, 153) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
         }
         .login-container {
-            background: white;
+            background: rgb(198, 201, 205);
             border-radius: 15px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             overflow: hidden;
