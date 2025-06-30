@@ -1,0 +1,224 @@
+-- Base de datos para Gym App
+CREATE DATABASE gym_app;
+USE gym_app;
+
+-- Tabla de usuarios
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20),
+    tipo ENUM('cliente', 'entrenador', 'admin') DEFAULT 'cliente',
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_nacimiento DATE,
+    genero ENUM('masculino', 'femenino', 'otro'),
+    objetivo ENUM('bajar_peso', 'subir_masa', 'mantener', 'definir') DEFAULT 'mantener'
+);
+
+-- Tabla de medidas corporales (para gráficos de progreso)
+CREATE TABLE medidas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    peso DECIMAL(5,2), -- kg
+    altura DECIMAL(5,2), -- cm
+    grasa_corporal DECIMAL(4,1), -- porcentaje
+    masa_muscular DECIMAL(5,2), -- kg
+    -- Medidas en cm
+    cintura DECIMAL(5,2),
+    cadera DECIMAL(5,2),
+    pecho DECIMAL(5,2),
+    brazo_derecho DECIMAL(5,2),
+    brazo_izquierdo DECIMAL(5,2),
+    pierna_derecha DECIMAL(5,2),
+    pierna_izquierda DECIMAL(5,2),
+    cuello DECIMAL(5,2),
+    fecha_medicion DATE NOT NULL,
+    notas TEXT,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_fecha (id_usuario, fecha_medicion)
+);
+
+-- Tabla de rachas de asistencia
+CREATE TABLE rachas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    fecha DATE NOT NULL,
+    activa BOOLEAN DEFAULT TRUE,
+    tipo_actividad ENUM('gym', 'rutina_casa', 'cardio') DEFAULT 'gym',
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_date (id_usuario, fecha),
+    INDEX idx_usuario_activa (id_usuario, activa)
+);
+
+-- Tabla de rutinas (creadas por entrenadores, vistas por clientes)
+CREATE TABLE rutinas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_entrenador INT NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT,
+    categoria ENUM('principiante', 'intermedio', 'avanzado', 'cardio', 'fuerza', 'hiit') DEFAULT 'intermedio',
+    objetivo ENUM('bajar_peso', 'subir_masa', 'mantener', 'definir', 'general') DEFAULT 'general',
+    duracion_minutos INT DEFAULT 45,
+    ejercicios JSON, -- Array de ejercicios con series, reps, etc
+    activa BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_entrenador) REFERENCES usuarios(id),
+    INDEX idx_categoria_objetivo (categoria, objetivo)
+);
+
+-- Tabla de tips diarios
+CREATE TABLE tips (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    contenido TEXT NOT NULL,
+    categoria ENUM('nutricion', 'ejercicio', 'mentalidad', 'recovery', 'general') DEFAULT 'general',
+    id_autor INT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_autor) REFERENCES usuarios(id),
+    INDEX idx_categoria_activo (categoria, activo)
+);
+
+-- Tabla de contador de calorías/macros (con integración API)
+CREATE TABLE registro_comidas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    fecha DATE NOT NULL,
+    comida ENUM('desayuno', 'almuerzo', 'cena', 'snack1', 'snack2') NOT NULL,
+    alimento VARCHAR(200) NOT NULL,
+    cantidad DECIMAL(6,2) NOT NULL, -- gramos o ml
+    -- Datos nutricionales (pueden venir de API o ser manuales)
+    calorias DECIMAL(7,2) NOT NULL,
+    proteinas DECIMAL(6,2) DEFAULT 0,
+    carbohidratos DECIMAL(6,2) DEFAULT 0,
+    grasas DECIMAL(6,2) DEFAULT 0,
+    fibra DECIMAL(6,2) DEFAULT 0,
+    -- Integración con API de alimentos
+    api_food_id VARCHAR(100), -- ID del alimento en la API externa
+    api_nombre VARCHAR(20) DEFAULT 'manual', -- edamam, usda, spoonacular, manual
+    macros_json JSON, -- Respuesta completa de la API para referencia
+    -- Metadatos
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_fecha (id_usuario, fecha),
+    INDEX idx_api_food (api_food_id, api_nombre)
+);
+
+-- Tabla de objetivos nutricionales del usuario
+CREATE TABLE objetivos_nutricionales (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    calorias_objetivo DECIMAL(7,2) NOT NULL,
+    proteinas_objetivo DECIMAL(6,2) NOT NULL,
+    carbohidratos_objetivo DECIMAL(6,2) NOT NULL,
+    grasas_objetivo DECIMAL(6,2) NOT NULL,
+    agua_objetivo DECIMAL(5,2) DEFAULT 2.5, -- litros
+    fecha_inicio DATE NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_activo (id_usuario, activo)
+);
+
+-- Tabla de promociones
+CREATE TABLE promociones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT NOT NULL,
+    descuento_porcentaje DECIMAL(5,2),
+    descuento_cantidad DECIMAL(10,2),
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    activa BOOLEAN DEFAULT TRUE,
+    codigo_promocional VARCHAR(50) UNIQUE,
+    INDEX idx_fechas_activa (fecha_inicio, fecha_fin, activa)
+);
+
+-- Tabla para estadísticas generales del gym
+CREATE TABLE estadisticas_gym (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fecha DATE NOT NULL,
+    total_asistencias INT DEFAULT 0,
+    nuevos_registros INT DEFAULT 0,
+    rutinas_completadas INT DEFAULT 0,
+    UNIQUE KEY unique_fecha (fecha)
+);
+
+-- Insertar usuario admin por defecto
+INSERT INTO usuarios (email, password, nombre, apellido, tipo) 
+VALUES ('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin');
+
+-- Insertar algunos tips de ejemplo
+INSERT INTO tips (titulo, contenido, categoria) VALUES 
+('Hidratación', 'Toma al menos 8 vasos de agua al día. Tu rendimiento mejora un 25% con buena hidratación.', 'general'),
+('Proteína post-entreno', 'Consume proteína dentro de los 30 minutos después de entrenar para máxima recuperación.', 'nutricion'),
+('Descanso entre series', 'Para fuerza: 2-3 min. Para hipertrofia: 1-2 min. Para resistencia: 30-60 seg.', 'ejercicio'),
+('Mentalidad positiva', 'Cada día en el gym es una victoria. No importa qué tan pequeño sea el progreso.', 'mentalidad');
+
+-- Tabla de alimentos favoritos (cache local de la API)
+CREATE TABLE alimentos_favoritos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    alimento VARCHAR(200) NOT NULL,
+    api_food_id VARCHAR(100),
+    api_nombre VARCHAR(20) DEFAULT 'manual',
+    calorias_por_100g DECIMAL(7,2) NOT NULL,
+    proteinas_por_100g DECIMAL(6,2) DEFAULT 0,
+    carbohidratos_por_100g DECIMAL(6,2) DEFAULT 0,
+    grasas_por_100g DECIMAL(6,2) DEFAULT 0,
+    fibra_por_100g DECIMAL(6,2) DEFAULT 0,
+    macros_json JSON,
+    veces_usado INT DEFAULT 1,
+    fecha_agregado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_ultimo_uso TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_uso (id_usuario, veces_usado DESC),
+    INDEX idx_api_food (api_food_id, api_nombre)
+);
+
+-- Tabla de caché de búsquedas API (para reducir llamadas)
+CREATE TABLE cache_api_alimentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    termino_busqueda VARCHAR(200) NOT NULL,
+    api_nombre VARCHAR(20) NOT NULL,
+    resultados_json JSON NOT NULL,
+    fecha_cache TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expira_en TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 7 DAY),
+    UNIQUE KEY unique_busqueda_api (termino_busqueda, api_nombre),
+    INDEX idx_expiracion (expira_en)
+);
+CREATE VIEW vista_progreso_usuarios AS
+SELECT 
+    u.id,
+    u.nombre,
+    u.apellido,
+    COUNT(DISTINCT r.fecha) as dias_asistencia,
+    MAX(r.fecha) as ultima_asistencia,
+    DATEDIFF(CURDATE(), MAX(r.fecha)) as dias_sin_ir
+FROM usuarios u
+LEFT JOIN rachas r ON u.id = r.id_usuario AND r.activa = TRUE
+WHERE u.tipo = 'cliente'
+GROUP BY u.id, u.nombre, u.apellido;
+
+CREATE VIEW vista_racha_actual AS
+SELECT 
+    r.id_usuario,
+    COUNT(*) as dias_consecutivos
+FROM rachas r
+WHERE r.activa = TRUE 
+    AND r.fecha >= (
+        SELECT MIN(r2.fecha) 
+        FROM rachas r2 
+        WHERE r2.id_usuario = r.id_usuario 
+            AND r2.activa = TRUE
+            AND NOT EXISTS (
+                SELECT 1 FROM rachas r3 
+                WHERE r3.id_usuario = r.id_usuario 
+                    AND r3.fecha = DATE_SUB(r2.fecha, INTERVAL 1 DAY)
+                    AND r3.activa = FALSE
+            )
+    )
+GROUP BY r.id_usuario;

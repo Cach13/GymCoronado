@@ -1,79 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="EstilosConsejos.css">
-    <title>Document</title>
-</head>
-<body>
-    <header>
-        <a href="#" class="logo">CORONADO GYM</a>
-        
-        <!-- Botón del menú hamburguesa -->
-        <div class="menu-toggle" id="mobile-menu">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
-        
-        <ul class="navegacion" id="navegacion">
-            <li><a href="Index.html" class="active">Inicio</a></li>
-            <li><a href="Consejos.html">Consejos Fitnes</a></li>
-            <li><a href="Maquinaria.html">Como usar el equipo </a></li>
-            <li><a href="Costos.html">Costos</a></li>
-            <li><a href="mision-valores.html">Visión & Valores</a></li>
-            <li><a href="Contactanos.html">Contáctanos</a></li>
-        </ul>
-    </header>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/nav.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <title>Inicio | Coronado GYM</title>
     
-    <div class="carrusel-container">
-        <div class="carrusel">
-            <div class="parrafo-carrusel active">
-            <p> <strong>Establece metas realistas </strong>
-                <br>
-                Define objetivos claros y alcanzables (ejemplo: "perder 2 kg en un mes" o "hacer 10 flexiones seguidas").
-                
-                Combina metas a corto y largo plazo para mantener la motivación.</p>
-            </div>
-            <div class="parrafo-carrusel">
-                <p><strong>Combina fuerza y cardio</strong>
-                    <br>
-                    Entrenamiento de fuerza (pesas, calistenia): Ayuda a ganar músculo, mejorar metabolismo y prevenir lesiones.
-                    
-                    Cardio (caminar, correr, HIIT): Mejora resistencia y quema calorías. Recomendado 150 min/semana (OMS).</p>
-            </div>
-            <div class="parrafo-carrusel">
-            <p><strong>Alimentación: 70% del éxito</strong>
-                <br>
-                Proteína (pollo, huevos, legumbres) para reparar músculos.
-                
-                Carbohidratos complejos (arroz integral, avena) para energía.
-                
-                Grasas saludables (aguacate, frutos secos).
-                
-                Hidratación: 2-3 litros de agua al día.</p>
-            </div>
-            
-        </div>
-        
-        <!-- Controles del carrusel -->
-        <button class="carrusel-btn prev">❮</button>
-        <button class="carrusel-btn next">❯</button>
-        
-        <!-- Indicadores de posición -->
-        <div class="indicadores">
-            <span class="indicador active"></span>
-            <span class="indicador"></span>
-            <span class="indicador"></span>
-        </div>
-    </div>
-    <script src="FuncionalidadConsejos.js"></script>
+    </head>
+    <body>
 
+    <!-- NAVBAR -->
+    <header class="navbar">
+    <div class="logo">GYM GECK</div>
+    <nav>
+        <ul>
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="consejos.html">Consejos</a></li>
+        <li><a href="precios.html">Precios</a></li>
+        <li><a href="rutinas.html">Rutinas</a></li>
+        <li><a href="macros.html">Macros</a></li>
+        <li><a href="login.html">Iniciar sesión</a></li>
+        </ul>
+    </nav>
+    </header>
 
-<footer>
-    <p>© Cach. Todos los derechos reservados.</p>
-</footer>
-<script src="FuncionalidadIndex.js"></script>
-</body>
-</html>
+        <!-- Hero -->
+    <section class="bg-gradient-to-r from-blue-400 to-blue-900 text-white text-center py-24 px-6">
+        <h2 class="text-4xl font-bold mb-4">¡Transforma tu cuerpo!</h2>
+        <p class="text-lg mb-6">Entrena con los mejores, mejora tu vida.</p>
+        <a href="#" class="bg-white text-blue-900 font-bold py-3 px-6 rounded hover:bg-blue-200 transition">Únete ahora</a>
+    </section>
+
+    <!-- ¿Por qué elegirnos? -->
+    <section class="max-w-5xl mx-auto py-16 px-6">
+        <h3 class="text-2xl font-bold text-blue-900 mb-4">¿Por qué elegirnos?</h3>
+        <p class="text-gray-700">
+        Ofrecemos rutinas personalizadas, asesoría profesional, ambiente motivador y un sistema de seguimiento para que no te detengas. ¡Este es el lugar donde empiezan los cambios!
+        </p>
+    </section>
+
+    <!-- Testimonios -->
+    <section class="max-w-5xl mx-auto py-16 px-6 bg-white">
+        <h3 class="text-2xl font-bold text-blue-900 mb-8">Testimonios</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-blue-100 p-6 rounded-lg shadow">
+            <p class="italic">"Este gym cambió mi vida, ahora me siento más fuerte y con mucha energía."</p>
+            <h4 class="mt-4 font-bold text-blue-800">- Luis R.</h4>
+        </div>
+        <div class="bg-blue-100 p-6 rounded-lg shadow">
+            <p class="italic">"Gracias al sistema de racha nunca me rindo, me encanta ver mi progreso."</p>
+            <h4 class="mt-4 font-bold text-blue-800">- Karla M.</h4>
+        </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-blue-900 text-white text-center py-8">
+        <p class="font-semibold">&copy; 2025 GYM GECK. Todos los derechos reservados.</p>
+        <p class="text-sm text-blue-200 mt-2">Desarrollado por <span class="font-bold">GECK Codex</span></p>
+    </footer>
+
+    

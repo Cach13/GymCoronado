@@ -1,68 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="EstilosIndex.css">
-    <title>Coronado Gym</title>
-</head>
-<body>
-    
-    <section>
-        <header>
-            <a href="#" class="logo">CORONADO GYM</a>
-            
-            <!-- Botón del menú hamburguesa -->
-            <div class="menu-toggle" id="mobile-menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            
-            <ul class="navegacion" id="navegacion">
-                <li><a href="Contador.html" class="active">Contador de calorias</a></li>
-                <li><a href="Consejos.html">Consejos Fitnes</a></li>
-                <li><a href="Maquinaria.html">Como usar el equipo </a></li>
-                <li><a href="Costos.html">Costos</a></li>
-                <li><a href="mision-valores.html">Visión & Valores</a></li>
-                <li><a href="Contactanos.html">Contáctanos</a></li>
-            </ul>
-        </header>
-        
-        <div class="contenido">
-            <div class="cajaTexto">
-                <h2>¡¡Bienvenidos!!</h2>
-                <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Aperiam expedita, 
-                dolor voluptate asperiores reprehenderit iure inventore vitae repudiandae blanditiis commodi, 
-                consectetur, voluptas recusandae a doloribus? Neque repudiandae repellat repellendus veniam!</p>
-                <a href="#">Ofertas Especiales</a>
-            </div>
-        </div>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/nav.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 
-        <div class="carousel-container">
-            <div class="carousel">
-                <div class="carousel-slide active">
-                    <img src="https://imgs.search.brave.com/gvE-uS8ZlYvKAG4hdhLmDYAXeWHp7RuRnBFFmi9dT1c/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9idXJz/dC5zaG9waWZ5Y2Ru/LmNvbS9waG90b3Mv/Z3ltLXdlaWdodHMu/anBnP3dpZHRoPTEw/MDAmZm9ybWF0PXBq/cGcmZXhpZj0wJmlw/dGM9MA" alt="Gimnasio 1">
-                </div>
-                <div class="carousel-slide">
-                    <img src="https://imgs.search.brave.com/6Nh1V79ADvNHiPa9LWUscjVfdkT5BT_5vFCn11DXCsU/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAxLzA4Lzk5LzIw/LzM2MF9GXzEwODk5/MjA5NF9TWjVXU0VS/WUJVemZJMnVvb2t3/dkZRZEZjNkRTdDlJ/Qi5qcGc" alt="Gimnasio 2">
-                </div>
-                <div class="carousel-slide">
-                    <img src="https://imgs.search.brave.com/x91MDICMy3pAAzH4iPdHti-miqsUYOTnMnyonwjk-tg/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzAwLzQ2LzQ5Lzkx/LzM2MF9GXzQ2NDk5/MTE3X0hQMVNYMEdr/b1JFZU10WHBxWERZ/bVlzWGJ2WkdaczNo/LmpwZw" alt="Gimnasio 3">
-                </div>
-                <button class="carousel-btn prev" onclick="moveSlide(-1)">&#10094;</button>
-                <button class="carousel-btn next" onclick="moveSlide(1)">&#10095;</button>
-            </div>
-            <div class="carousel-dots">
-                <!-- Los puntos se generarán con JavaScript -->
-            </div>
+    <title>Inicio | Coronado GYM</title>
+    
+    </head>
+    <body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+    <div class="logo">GYM GECK</div>
+    <nav>
+        <ul>
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="consejos.html">Consejos</a></li>
+        <li><a href="precios.html">Precios</a></li>
+        <li><a href="rutinas.html">Rutinas</a></li>
+        <li><a href="macros.html">Macros</a></li>
+        <li><a href="login.html">Iniciar sesión</a></li>
+        </ul>
+    </nav>
+    </header>
+
+
+        <!-- Hero -->
+    <section class="bg-gradient-to-r from-blue-400 to-blue-900 text-white text-center py-24 px-6">
+        <h2 class="text-4xl font-bold mb-4">¡Transforma tu cuerpo!</h2>
+        <p class="text-lg mb-6">Entrena con los mejores, mejora tu vida.</p>
+        <a href="#" class="bg-white text-blue-900 font-bold py-3 px-6 rounded hover:bg-blue-200 transition">Únete ahora</a>
+    </section>
+
+    <!-- ¿Por qué elegirnos? -->
+    <section class="max-w-5xl mx-auto py-16 px-6">
+        <h3 class="text-2xl font-bold text-blue-900 mb-4">¿Por qué elegirnos?</h3>
+        <p class="text-gray-700">
+        Ofrecemos rutinas personalizadas, asesoría profesional, ambiente motivador y un sistema de seguimiento para que no te detengas. ¡Este es el lugar donde empiezan los cambios!
+        </p>
+    </section>
+
+    <!-- Testimonios -->
+    <section class="max-w-5xl mx-auto py-16 px-6 bg-white">
+        <h3 class="text-2xl font-bold text-blue-900 mb-8">Testimonios</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-blue-100 p-6 rounded-lg shadow">
+            <p class="italic">"Este gym cambió mi vida, ahora me siento más fuerte y con mucha energía."</p>
+            <h4 class="mt-4 font-bold text-blue-800">- Luis R.</h4>
+        </div>
+        <div class="bg-blue-100 p-6 rounded-lg shadow">
+            <p class="italic">"Gracias al sistema de racha nunca me rindo, me encanta ver mi progreso."</p>
+            <h4 class="mt-4 font-bold text-blue-800">- Karla M.</h4>
+        </div>
         </div>
     </section>
 
-    <script src="FuncionalidadIndex.js"></script>
-    
-    <footer>
-        <p>© Cach. Todos los derechos reservados.</p>
+    <!-- Footer -->
+    <footer class="bg-blue-900 text-white text-center py-8">
+        <p class="font-semibold">&copy; 2025 GYM GECK. Todos los derechos reservados.</p>
+        <p class="text-sm text-blue-200 mt-2">Desarrollado por <span class="font-bold">GECK Codex</span></p>
     </footer>
+
 </body>
 </html>
