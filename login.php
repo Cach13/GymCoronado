@@ -1,10 +1,16 @@
+
 <?php
 require_once 'config/config.php';
 require_once 'config/User.php';
 
-// Si ya está logueado, redirigir al dashboard
+// Si ya está logueado, redirigir según el tipo de usuario
 if (gym_is_logged_in()) {
-    gym_redirect('dashboard.php');
+    // Verificar el tipo de usuario en la sesión
+    if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'admin') {
+        gym_redirect('pantalla_admin.php');
+    } else {
+        gym_redirect('dashboard.php');
+    }
 }
 
 $error = '';
@@ -23,8 +29,15 @@ if ($_POST) {
         
         if ($result['success']) {
             $success = $result['message'];
+            
+            // Redirigir según el tipo de usuario
+            $redirect_url = 'dashboard.php'; // Por defecto
+            if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'admin') {
+                $redirect_url = 'pantalla_admin.php';
+            }
+            
             // Redirigir después de un login exitoso
-            header("refresh:1;url= dashboard.php");
+            header("refresh:1;url=" . $redirect_url);
         } else {
             $error = $result['message'];
         }
