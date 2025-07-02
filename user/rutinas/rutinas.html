@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rutinas por Grupo Muscular - <?php echo SITE_NAME; ?></title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #10b981;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            padding-top: 76px;
+        }
+        
+        .muscle-group-card {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 1.5rem;
+            border: none;
+        }
+        
+        .muscle-group-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        }
+        
+        .muscle-group-header {
+            padding: 1rem;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .muscle-group-header i {
+            font-size: 1.5rem;
+        }
+        
+        .exercise-card {
+            border-left: 4px solid;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .exercise-card:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .exercise-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .exercise-details {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        /* Colores por grupo muscular */
+        .chest {
+            background-color: #ef4444;
+            border-color: #ef4444;
+        }
+        
+        .back {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .legs {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        
+        .arms {
+            background-color: #f59e0b;
+            border-color: #f59e0b;
+        }
+        
+        .shoulders {
+            background-color: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+        
+        .core {
+            background-color: #ec4899;
+            border-color: #ec4899;
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .search-input {
+            padding-left: 2.5rem;
+            border-radius: 50px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .filter-buttons .btn {
+            border-radius: 50px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .muscle-group-card {
+                margin-bottom: 1rem;
+            }
+            
+            .filter-buttons .btn {
+                font-size: 0.8rem;
+                padding: 0.25rem 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar (usar el mismo que en tu dashboard) -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.php">
+                <i class="fas fa-dumbbell me-2"></i>
+                <?php echo SITE_NAME; ?>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.php">
+                            <i class="fas fa-home me-1"></i> Inicio
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="fw-bold mb-3">Rutinas por Grupo Muscular</h2>
+                
+                <!-- Barra de búsqueda y filtros -->
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control search-input" placeholder="Buscar ejercicios...">
+                </div>
+                
+                <div class="filter-buttons">
+                    <button class="btn btn-outline-primary active" data-filter="all">Todos</button>
+                    <button class="btn btn-outline-danger" data-filter="chest">Pecho</button>
+                    <button class="btn btn-outline-primary" data-filter="back">Espalda</button>
+                    <button class="btn btn-outline-success" data-filter="legs">Piernas</button>
+                    <button class="btn btn-outline-warning" data-filter="arms">Brazos</button>
+                    <button class="btn btn-outline-purple" data-filter="shoulders">Hombros</button>
+                    <button class="btn btn-outline-pink" data-filter="core">Core</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grupo Muscular: Pecho -->
+        <div class="row muscle-group" data-group="chest">
+            <div class="col-12">
+                <div class="card muscle-group-card">
+                    <div class="muscle-group-header chest">
+                        <h4 class="mb-0"><i class="fas fa-heart me-2"></i> Rutinas de Pecho</h4>
+                        <span class="badge bg-white text-dark">5 ejercicios</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="exercise-card">
+                            <div class="d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <h5 class="exercise-title">Press de Banca</h5>
+                                    <div class="exercise-details">
+                                        <span class="me-3"><i class="fas fa-dumbbell me-1"></i> 4 series x 8-12 rep</span>
+                                        <span><i class="fas fa-clock me-1"></i> 60 seg descanso</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="exercise-card">
+                            <div class="d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <h5 class="exercise-title">Press Inclinado con Mancuernas</h5>
+                                    <div class="exercise-details">
+                                        <span class="me-3"><i class="fas fa-dumbbell me-1"></i> 3 series x 10-12 rep</span>
+                                        <span><i class="fas fa-clock me-1"></i> 45 seg descanso</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Más ejercicios de pecho... -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grupo Muscular: Espalda -->
+        <div class="row muscle-group" data-group="back">
+            <div class="col-12">
+                <div class="card muscle-group-card">
+                    <div class="muscle-group-header back">
+                        <h4 class="mb-0"><i class="fas fa-ribbon me-2"></i> Rutinas de Espalda</h4>
+                        <span class="badge bg-white text-dark">4 ejercicios</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="exercise-card">
+                            <div class="d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <h5 class="exercise-title">Dominadas</h5>
+                                    <div class="exercise-details">
+                                        <span class="me-3"><i class="fas fa-dumbbell me-1"></i> 4 series x máx rep</span>
+                                        <span><i class="fas fa-clock me-1"></i> 60 seg descanso</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Más ejercicios de espalda... -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grupo Muscular: Piernas -->
+        <div class="row muscle-group" data-group="legs">
+            <div class="col-12">
+                <div class="card muscle-group-card">
+                    <div class="muscle-group-header legs">
+                        <h4 class="mb-0"><i class="fas fa-walking me-2"></i> Rutinas de Piernas</h4>
+                        <span class="badge bg-white text-dark">6 ejercicios</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="exercise-card">
+                            <div class="d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <h5 class="exercise-title">Sentadillas</h5>
+                                    <div class="exercise-details">
+                                        <span class="me-3"><i class="fas fa-dumbbell me-1"></i> 4 series x 12-15 rep</span>
+                                        <span><i class="fas fa-clock me-1"></i> 60 seg descanso</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Más ejercicios de piernas... -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Más grupos musculares... -->
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filtrado por grupo muscular
+        document.querySelectorAll('.filter-buttons .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remover active de todos los botones
+                document.querySelectorAll('.filter-buttons .btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                
+                // Agregar active al botón clickeado
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                
+                // Mostrar/ocultar grupos musculares
+                document.querySelectorAll('.muscle-group').forEach(group => {
+                    if (filter === 'all' || group.dataset.group === filter) {
+                        group.style.display = 'block';
+                    } else {
+                        group.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // Búsqueda de ejercicios
+        document.querySelector('.search-input').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            document.querySelectorAll('.exercise-card').forEach(card => {
+                const exerciseTitle = card.querySelector('.exercise-title').textContent.toLowerCase();
+                
+                if (exerciseTitle.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+        
+        // Agregar ejercicio a mi rutina
+        document.querySelectorAll('.exercise-card button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const exerciseTitle = this.closest('.exercise-card').querySelector('.exercise-title').textContent;
+                
+                // Aquí puedes agregar lógica para añadir a la rutina del usuario
+                alert(`Ejercicio "${exerciseTitle}" agregado a tu rutina`);
+                
+                // Cambiar el botón a "agregado"
+                this.innerHTML = '<i class="fas fa-check"></i> Agregado';
+                this.classList.remove('btn-outline-primary', 'btn-outline-danger', 'btn-outline-success', 'btn-outline-warning');
+                this.classList.add('btn-success');
+                
+                // Opcional: Deshabilitar el botón
+                this.disabled = true;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -255,6 +255,24 @@ CREATE TABLE cache_api_alimentos (
     INDEX idx_expiracion (expira_en)
 );
 
+    -- Tabla de ejercicios preestablecidos
+    CREATE TABLE IF NOT EXISTS ejercicios_preestablecidos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL,
+        grupo_muscular ENUM('pecho', 'espalda', 'piernas', 'brazos', 'hombros', 'core', 'cardio', 'fullbody') NOT NULL,
+        series INT NOT NULL,
+        repeticiones VARCHAR(50) NOT NULL, -- Puede ser "8-12" o "12-15" etc.
+        tiempo_descanso VARCHAR(20) NOT NULL, -- Ej: "60 seg", "90 seg"
+        instrucciones TEXT,
+        imagen_url VARCHAR(255),
+        dificultad ENUM('principiante', 'intermedio', 'avanzado') DEFAULT 'intermedio',
+        equipamiento_necesario VARCHAR(100),
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        creado_por INT,
+        FOREIGN KEY (creado_por) REFERENCES usuarios(id),
+        INDEX idx_grupo_muscular (grupo_muscular),
+        INDEX idx_dificultad (dificultad)
+    );
 -- =============================================
 -- VISTAS PARA FACILITAR CONSULTAS
 -- =============================================

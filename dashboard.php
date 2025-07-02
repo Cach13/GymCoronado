@@ -113,6 +113,64 @@ if (!empty($user['fecha_vencimiento'])) {
             font-size: 1.2rem;
             padding: 0.5rem;
         }
+
+            /* Estilos para el menú desplegable */
+        .sidebar .dropdown-menu {
+            background-color: #f8f9fa;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-left: 1.5rem;
+            border-radius: 0 8px 8px 8px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0;
+            display: block !important; /* Forzar display block */
+        }
+
+        .sidebar .dropdown-menu.show {
+            max-height: 200px;
+            padding: 0.5rem 0;
+        }
+
+        .sidebar .dropdown-item {
+            padding: 0.5rem 1.5rem;
+            color: #333;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .sidebar .dropdown-item:hover {
+            background-color: #e9ecef;
+            color: #0d6efd;
+        }
+
+        .sidebar .dropdown-icon {
+            transition: transform 0.3s;
+            font-size: 0.8rem;
+        }
+
+        .sidebar .dropdown-toggle.active .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Comportamiento en desktop */
+        @media (min-width: 992px) {
+            .sidebar .dropdown:hover .dropdown-menu {
+                max-height: 200px;
+                padding: 0.5rem 0;
+            }
+            
+            .sidebar .dropdown:hover .dropdown-icon {
+                transform: rotate(180deg);
+            }
+        }
+/* Asegurar que el submenú se muestre al pasar el mouse */
+@media (min-width: 992px) {
+    .sidebar .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+}
         
         /* Estilos de las tarjetas */
         .stat-card {
@@ -274,6 +332,25 @@ if (!empty($user['fecha_vencimiento'])) {
                 margin-bottom: 1rem;
             }
         }
+        /* Estilos específicos para móvil */
+@media (max-width: 991.98px) {
+    .sidebar .dropdown-menu {
+        position: static;
+        transform: none;
+        width: auto;
+        margin-left: 2rem;
+        border-left: 2px solid #e9ecef;
+        box-shadow: none;
+    }
+    
+    .sidebar .dropdown-item {
+        padding: 0.5rem 1rem;
+    }
+    
+    .sidebar .dropdown-toggle {
+        cursor: pointer;
+    }
+}
     </style>
 </head>
 <body>
@@ -320,12 +397,30 @@ if (!empty($user['fecha_vencimiento'])) {
                         Dashboard
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="rutinas.php">
+                <!-- Menú desplegable para Rutinas -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="rutinasDropdown">
                         <i class="fas fa-running me-2"></i>
                         Rutinas
+                        <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
                     </a>
+                    <ul class="dropdown-menu" id="rutinasSubmenu">
+                        <li>
+                            <a class="dropdown-item" href="user/rutinas/rutinas.php">
+                                <i class="fas fa-list me-2"></i>
+                                Ver Rutinas
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="user/rutinas/crear.php">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Crear Rutina
+                            </a>
+                        </li>
+                    </ul>
                 </li>
+            
+            
                 <li class="nav-item">
                     <a class="nav-link" href="nutricion.php">
                         <i class="fas fa-apple-alt me-2"></i>
@@ -590,7 +685,7 @@ if (!empty($user['fecha_vencimiento'])) {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sidebar toggle functionality
+       // Sidebar toggle functionality
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebar = document.getElementById('sidebar');
         const sidebarBackdrop = document.getElementById('sidebarBackdrop');
@@ -606,7 +701,7 @@ if (!empty($user['fecha_vencimiento'])) {
         });
 
         // Close sidebar when clicking on a link (mobile)
-        document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+        document.querySelectorAll('.sidebar .nav-link:not(.dropdown-toggle)').forEach(function(link) {
             link.addEventListener('click', function() {
                 if (window.innerWidth < 992) {
                     sidebar.classList.remove('show');
@@ -622,6 +717,70 @@ if (!empty($user['fecha_vencimiento'])) {
                 sidebarBackdrop.classList.remove('show');
             }
         });
+
+        // Rutinas dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownToggle = document.querySelector('#rutinasDropdown');
+            const dropdownMenu = document.querySelector('#rutinasSubmenu');
+            
+            // Verificar si es dispositivo móvil
+            function isMobile() {
+                return window.innerWidth < 992;
+            }
+            
+            // Función para alternar el menú
+            function toggleMenu(e) {
+                if (isMobile()) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation(); // Cambiado a stopImmediatePropagation
+                    
+                    const isOpen = dropdownMenu.classList.contains('show');
+                    
+                    // Alternar este menú
+                    dropdownMenu.classList.toggle('show', !isOpen);
+                    dropdownToggle.classList.toggle('active', !isOpen);
+                    
+                    // Detener la propagación del evento
+                    return false;
+                }
+            }
+            
+            // Evento click para móvil
+            dropdownToggle.addEventListener('click', toggleMenu, true); // Usando capture phase
+            
+            // Cerrar menús al hacer click fuera (solo para móvil)
+            document.addEventListener('click', function(e) {
+                if (isMobile() && 
+                    !e.target.closest('.dropdown') && 
+                    !e.target.closest('.sidebar-toggle')) {
+                    dropdownMenu.classList.remove('show');
+                    dropdownToggle.classList.remove('active');
+                }
+            }, true); // Usando capture phase
+            
+            // Hover para desktop
+            if (!isMobile()) {
+                dropdownToggle.addEventListener('mouseenter', function() {
+                    dropdownMenu.classList.add('show');
+                    this.classList.add('active');
+                });
+                
+                dropdownToggle.parentElement.addEventListener('mouseleave', function() {
+                    dropdownMenu.classList.remove('show');
+                    this.querySelector('.dropdown-toggle').classList.remove('active');
+                });
+            }
+            
+            // Cerrar menús al cambiar a desktop
+            window.addEventListener('resize', function() {
+                if (!isMobile()) {
+                    dropdownMenu.classList.remove('show');
+                    dropdownToggle.classList.remove('active');
+                }
+            });
+        });
+
+        
     </script>
 </body>
 </html>

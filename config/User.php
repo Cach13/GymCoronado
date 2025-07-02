@@ -1,5 +1,6 @@
 <?php
-require_once 'config/config.php';
+require_once __DIR__ . '/config.php';  // ✅ Correcto
+
 
 class User {
     private $db;
@@ -265,6 +266,142 @@ public function validate_registration($data) {
     }
 
     return $errors;
+}
+// Dentro de la clase User, después del último método
+
+/**
+ * Agregar un ejercicio preestablecido a la base de datos
+ * 
+ * @param array $data Datos del ejercicio
+ * @return array Resultado de la operación
+ */
+public function agregar_ejercicio_preestablecido($data) {
+    // Validar que el usuario sea admin o entrenador
+    if (!isset($_SESSION['user_tipo']) || ($_SESSION['user_tipo'] !== 'admin' && $_SESSION['user_tipo'] !== 'entrenador')) {
+        return ['success' => false, 'message' => 'No tienes permisos para realizar esta acción'];
+    }
+
+    // Validar datos requeridos
+    $required = ['nombre', 'grupo_muscular', 'series', 'repeticiones', 'tiempo_descanso'];
+    foreach ($required as $field) {
+        if (empty($data[$field])) {
+            return ['success' => false, 'message' => "El campo $field es requerido"];
+        }
+    }
+
+    $this->db->query('INSERT INTO ejercicios_preestablecidos 
+                     (nombre, grupo_muscular, series, repeticiones, tiempo_descanso, instrucciones, imagen_url, dificultad, equipamiento_necesario, creado_por) 
+                     VALUES (:nombre, :grupo_muscular, :series, :repeticiones, :tiempo_descanso, :instrucciones, :imagen_url, :dificultad, :equipamiento, :creado_por)');
+    
+    $this->db->bind(':nombre', $data['nombre']);
+    $this->db->bind(':grupo_muscular', $data['grupo_muscular']);
+    $this->db->bind(':series', $data['series']);
+    $this->db->bind(':repeticiones', $data['repeticiones']);
+    $this->db->bind(':tiempo_descanso', $data['tiempo_descanso']);
+    $this->db->bind(':instrucciones', $data['instrucciones'] ?? null);
+    $this->db->bind(':imagen_url', $data['imagen_url'] ?? null);
+    $this->db->bind(':dificultad', $data['dificultad'] ?? 'intermedio');
+    $this->db->bind(':equipamiento', $data['equipamiento_necesario'] ?? null);
+    $this->db->bind(':creado_por', $_SESSION['user_id']);
+
+    if ($this->db->execute()) {
+        return ['success' => true, 'message' => 'Ejercicio agregado correctamente', 'ejercicio_id' => $this->db->lastInsertId()];
+    } else {
+        return ['success' => false, 'message' => 'Error al agregar el ejercicio'];
+    }
+}
+
+/**
+ * Obtener ejercicios preestablecidos filtrados por grupo muscular
+ * 
+ * @param string|null $grupo_muscular Filtro por grupo muscular
+ * @return array Lista de ejercicios
+ */
+public function obtener_ejercicios_preestablecidos($grupo_muscular = null) {
+    $query = 'SELECT * FROM ejercicios_preestablecidos WHERE 1=1';
+    
+    if ($grupo_muscular) {
+        $query .= ' AND grupo_muscular = :grupo_muscular';
+    }
+    
+    $query .= ' ORDER BY nombre ASC';
+    
+    $this->db->query($query);
+    
+    if ($grupo_muscular) {
+        $this->db->bind(':grupo_muscular', $grupo_muscular);
+    }
+    
+    return $this->db->resultset();
+}
+
+/**
+ * Crear una rutina preestablecida con múltiples ejercicios
+ * 
+ * @param array $data Datos de la rutina
+ * @param array $ejercicios_ids IDs de los ejercicios a incluir
+ * @return array Resultado de la operación
+ */
+public function crear_rutina_preestablecida($data, $ejercicios_ids) {
+    // Validar permisos
+    if (!isset($_SESSION['user_tipo']) || ($_SESSION['user_tipo'] !== 'admin' && $_SESSION['user_tipo'] !== 'entrenador')) {
+        return ['success' => false, 'message' => 'No tienes permisos para realizar esta acción'];
+    }
+
+    // Validar datos requeridos
+    $required = ['titulo', 'categoria', 'objetivo'];
+    foreach ($required as $field) {
+        if (empty($data[$field])) {
+            return ['success' => false, 'message' => "El campo $field es requerido"];
+        }
+    }
+
+    // Validar que haya al menos un ejercicio
+    if (empty($ejercicios_ids)) {
+        return ['success' => false, 'message' => 'Debes seleccionar al menos un ejercicio'];
+    }
+
+    // Obtener los ejercicios seleccionados
+    $placeholders = implode(',', array_fill(0, count($ejercicios_ids), '?'));
+    $this->db->query("SELECT * FROM ejercicios_preestablecidos WHERE id IN ($placeholders)");
+    
+    for ($i = 0; $i < count($ejercicios_ids); $i++) {
+        $this->db->bind($i + 1, $ejercicios_ids[$i]);
+    }
+    
+    $ejercicios = $this->db->resultset();
+    
+    // Preparar el array de ejercicios para guardar como JSON
+    $ejercicios_array = [];
+    foreach ($ejercicios as $ejercicio) {
+        $ejercicios_array[] = [
+            'id' => $ejercicio['id'],
+            'nombre' => $ejercicio['nombre'],
+            'series' => $ejercicio['series'],
+            'repeticiones' => $ejercicio['repeticiones'],
+            'descanso' => $ejercicio['tiempo_descanso'],
+            'instrucciones' => $ejercicio['instrucciones']
+        ];
+    }
+
+    // Insertar la rutina
+    $this->db->query('INSERT INTO rutinas 
+                     (id_entrenador, titulo, descripcion, categoria, objetivo, duracion_minutos, ejercicios) 
+                     VALUES (:entrenador_id, :titulo, :descripcion, :categoria, :objetivo, :duracion, :ejercicios)');
+    
+    $this->db->bind(':entrenador_id', $_SESSION['user_id']);
+    $this->db->bind(':titulo', $data['titulo']);
+    $this->db->bind(':descripcion', $data['descripcion'] ?? '');
+    $this->db->bind(':categoria', $data['categoria']);
+    $this->db->bind(':objetivo', $data['objetivo']);
+    $this->db->bind(':duracion', $data['duracion_minutos'] ?? 60);
+    $this->db->bind(':ejercicios', json_encode($ejercicios_array));
+
+    if ($this->db->execute()) {
+        return ['success' => true, 'message' => 'Rutina creada correctamente', 'rutina_id' => $this->db->lastInsertId()];
+    } else {
+        return ['success' => false, 'message' => 'Error al crear la rutina'];
+    }
 }
 
 }
