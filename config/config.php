@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root'); // Cambia por tu usuario de MySQL
 define('DB_PASS', '');     // Cambia por tu contraseña de MySQL
-define('DB_NAME', 'gym_app');
+define('DB_NAME', 'gym_app'); // Base de datos actualizada
 
 // Configuración de la aplicación
 define('SITE_URL', 'http://localhost/gym_app/');
@@ -111,7 +111,7 @@ function gym_is_logged_in() {
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
-// Función para obtener datos del usuario actual
+// Función para obtener datos del usuario actual (actualizada con nuevos campos)
 function gym_get_logged_in_user() {
     if (gym_is_logged_in()) {
         return [
@@ -119,8 +119,13 @@ function gym_get_logged_in_user() {
             'email' => $_SESSION['user_email'],
             'nombre' => $_SESSION['user_nombre'],
             'apellido' => $_SESSION['user_apellido'],
+            'telefono' => $_SESSION['user_telefono'] ?? null,
             'tipo' => $_SESSION['user_tipo'],
-            'objetivo' => $_SESSION['user_objetivo'] // ✅ Campo añadido aquí
+            'objetivo' => $_SESSION['user_objetivo'] ?? 'mantener',
+            'tipo_suscripcion' => $_SESSION['user_tipo_suscripcion'] ?? null,
+            'fecha_fin_suscripcion' => $_SESSION['user_fecha_fin_suscripcion'] ?? null,
+            'estado_suscripcion' => $_SESSION['user_estado_suscripcion'] ?? null,
+            'modalidad_pago' => $_SESSION['user_modalidad_pago'] ?? null
         ];
     }
     return null;
@@ -158,7 +163,7 @@ function gym_get_alert() {
     return null;
 }
 
-// Función para verificar permisos
+// Función para verificar permisos (actualizada con jerarquía de roles)
 function gym_check_permission($required_role) {
     if (!gym_is_logged_in()) {
         gym_redirect('login.php');
@@ -167,9 +172,59 @@ function gym_check_permission($required_role) {
     $user_role = $_SESSION['user_tipo'];
     $roles_hierarchy = ['cliente' => 1, 'entrenador' => 2, 'admin' => 3];
 
+    if (!isset($roles_hierarchy[$user_role])) {
+        gym_show_alert('Tu rol de usuario no está configurado correctamente', 'error');
+        gym_logout();
+        gym_redirect('login.php');
+    }
+
     if ($roles_hierarchy[$user_role] < $roles_hierarchy[$required_role]) {
         gym_show_alert('No tienes permisos para acceder a esta página', 'error');
         gym_redirect('dashboard.php');
     }
 }
-?>
+
+// Función para verificar estado de suscripción (nueva función)
+function gym_check_subscription() {
+    if (!gym_is_logged_in()) return false;
+    
+    if ($_SESSION['user_tipo'] !== 'cliente') return true;
+    
+    if (empty($_SESSION['user_fecha_fin_suscripcion'])) {
+        return false;
+    }
+    
+    $today = new DateTime();
+    $end_date = new DateTime($_SESSION['user_fecha_fin_suscripcion']);
+    
+    return ($end_date >= $today && $_SESSION['user_estado_suscripcion'] === 'activa');
+}
+
+// Función para obtener días restantes de suscripción (nueva función)
+function gym_get_remaining_days() {
+    if (!gym_is_logged_in() || empty($_SESSION['user_fecha_fin_suscripcion'])) {
+        return 0;
+    }
+    
+    $today = new DateTime();
+    $end_date = new DateTime($_SESSION['user_fecha_fin_suscripcion']);
+    
+    if ($end_date < $today) {
+        return 0;
+    }
+    
+    return $today->diff($end_date)->days;
+}
+
+// Función para formatear tipo de suscripción (nueva función)
+function gym_format_subscription_type($type) {
+    $types = [
+        'semanal' => 'Semanal',
+        'mensual' => 'Mensual',
+        'trimestral' => 'Trimestral',
+        'semestral' => 'Semestral',
+        'anual' => 'Anual'
+    ];
+    
+    return $types[$type] ?? $type;
+}

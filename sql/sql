@@ -1,9 +1,9 @@
--- Base de datos para Gym App
-CREATE DATABASE gym_app;
+-- Base de datos para Gym App con Sistema de Suscripciones
+CREATE DATABASE IF NOT EXISTS gym_app;
 USE gym_app;
 
--- Tabla de usuarios
-CREATE TABLE usuarios (
+-- Tabla de usuarios actualizada con sistema de suscripciones y control de acceso
+CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -12,10 +12,83 @@ CREATE TABLE usuarios (
     telefono VARCHAR(20),
     tipo ENUM('cliente', 'entrenador', 'admin') DEFAULT 'cliente',
     activo BOOLEAN DEFAULT TRUE,
+    puede_acceder BOOLEAN DEFAULT TRUE,  -- Nuevo campo para control de acceso
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_nacimiento DATE,
     genero ENUM('masculino', 'femenino', 'otro'),
-    objetivo ENUM('bajar_peso', 'subir_masa', 'mantener', 'definir') DEFAULT 'mantener'
+    objetivo ENUM('bajar_peso', 'subir_masa', 'mantener', 'definir') DEFAULT 'mantener',
+    -- Campos de suscripciones
+    tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual') DEFAULT 'mensual',
+    fecha_inicio_suscripcion DATE,
+    fecha_fin_suscripcion DATE,
+    estado_suscripcion ENUM('activa', 'vencida', 'cancelada', 'suspendida') DEFAULT 'activa',
+    -- Campos de pago
+    modalidad_pago ENUM('efectivo', 'transferencia', 'tarjeta', 'otro') DEFAULT 'efectivo',
+    -- Notas adicionales
+    notas_suscripcion TEXT,
+    INDEX idx_estado_suscripcion (estado_suscripcion),
+    INDEX idx_fecha_fin_suscripcion (fecha_fin_suscripcion),
+    INDEX idx_tipo_suscripcion (tipo_suscripcion),
+    INDEX idx_acceso (activo, puede_acceder)
+);
+
+CREATE TABLE IF NOT EXISTS historial_acceso (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_administrador INT NOT NULL,
+    accion ENUM('activar', 'desactivar', 'bloquear_acceso', 'eliminar') NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    detalles TEXT,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_administrador) REFERENCES usuarios(id)
+);
+
+-- Tabla de historial de pagos
+CREATE TABLE IF NOT EXISTS pagos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    monto DECIMAL(10,2) NOT NULL,
+    tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual') NOT NULL,
+    modalidad_pago ENUM('efectivo', 'transferencia', 'tarjeta', 'otro') NOT NULL,
+    fecha_pago DATE NOT NULL,
+    fecha_inicio_periodo DATE NOT NULL,
+    fecha_fin_periodo DATE NOT NULL,
+    estado_pago ENUM('pendiente', 'completado', 'cancelado', 'reembolsado') DEFAULT 'completado',
+    referencia_pago VARCHAR(100), -- Número de transferencia, recibo, etc.
+    notas TEXT,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    registrado_por INT, -- ID del usuario que registró el pago
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (registrado_por) REFERENCES usuarios(id),
+    INDEX idx_usuario_fecha (id_usuario, fecha_pago),
+    INDEX idx_estado_pago (estado_pago),
+    INDEX idx_modalidad_pago (modalidad_pago)
+);
+
+-- MODIFICACIÓN PARA SOLUCIONAR EL ERROR DE INTEGRIDAD
+ALTER TABLE pagos 
+DROP FOREIGN KEY pagos_ibfk_2;
+
+ALTER TABLE pagos 
+ADD CONSTRAINT fk_pagos_registrado_por 
+FOREIGN KEY (registrado_por) REFERENCES usuarios(id) 
+ON DELETE SET NULL;
+
+
+
+-- Tabla de precios de suscripciones
+CREATE TABLE precios_suscripciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual') NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    descuento_porcentaje DECIMAL(5,2) DEFAULT 0,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_inicio_vigencia DATE NOT NULL,
+    fecha_fin_vigencia DATE,
+    descripcion TEXT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_tipo_vigencia (tipo_suscripcion, fecha_inicio_vigencia),
+    INDEX idx_tipo_activo (tipo_suscripcion, activo)
 );
 
 -- Tabla de medidas corporales (para gráficos de progreso)
@@ -134,6 +207,7 @@ CREATE TABLE promociones (
     fecha_fin DATE NOT NULL,
     activa BOOLEAN DEFAULT TRUE,
     codigo_promocional VARCHAR(50) UNIQUE,
+    aplicable_a ENUM('todos', 'nuevos', 'renovaciones') DEFAULT 'todos',
     INDEX idx_fechas_activa (fecha_inicio, fecha_fin, activa)
 );
 
@@ -144,19 +218,9 @@ CREATE TABLE estadisticas_gym (
     total_asistencias INT DEFAULT 0,
     nuevos_registros INT DEFAULT 0,
     rutinas_completadas INT DEFAULT 0,
+    ingresos_dia DECIMAL(10,2) DEFAULT 0,
     UNIQUE KEY unique_fecha (fecha)
 );
-
--- Insertar usuario admin por defecto
-INSERT INTO usuarios (email, password, nombre, apellido, tipo) 
-VALUES ('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin');
-
--- Insertar algunos tips de ejemplo
-INSERT INTO tips (titulo, contenido, categoria) VALUES 
-('Hidratación', 'Toma al menos 8 vasos de agua al día. Tu rendimiento mejora un 25% con buena hidratación.', 'general'),
-('Proteína post-entreno', 'Consume proteína dentro de los 30 minutos después de entrenar para máxima recuperación.', 'nutricion'),
-('Descanso entre series', 'Para fuerza: 2-3 min. Para hipertrofia: 1-2 min. Para resistencia: 30-60 seg.', 'ejercicio'),
-('Mentalidad positiva', 'Cada día en el gym es una victoria. No importa qué tan pequeño sea el progreso.', 'mentalidad');
 
 -- Tabla de alimentos favoritos (cache local de la API)
 CREATE TABLE alimentos_favoritos (
@@ -190,6 +254,46 @@ CREATE TABLE cache_api_alimentos (
     UNIQUE KEY unique_busqueda_api (termino_busqueda, api_nombre),
     INDEX idx_expiracion (expira_en)
 );
+
+-- =============================================
+-- VISTAS PARA FACILITAR CONSULTAS
+-- =============================================
+
+-- Vista para calcular días restantes de suscripción
+CREATE VIEW vista_suscripciones AS
+SELECT 
+    u.id,
+    u.nombre,
+    u.apellido,
+    u.email,
+    u.telefono,
+    u.activo,
+    u.fecha_registro,
+    u.tipo_suscripcion,
+    u.fecha_inicio_suscripcion,
+    u.fecha_fin_suscripcion,
+    u.estado_suscripcion,
+    u.modalidad_pago,
+    u.notas_suscripcion,
+    CASE 
+        WHEN u.fecha_fin_suscripcion IS NULL THEN NULL
+        WHEN u.fecha_fin_suscripcion < CURDATE() THEN 0
+        ELSE DATEDIFF(u.fecha_fin_suscripcion, CURDATE())
+    END as dias_restantes,
+    CASE 
+        WHEN u.fecha_fin_suscripcion IS NULL THEN 'Sin suscripción'
+        WHEN u.fecha_fin_suscripcion < CURDATE() THEN 'Vencida'
+        WHEN DATEDIFF(u.fecha_fin_suscripcion, CURDATE()) <= 7 THEN 'Por vencer'
+        WHEN DATEDIFF(u.fecha_fin_suscripcion, CURDATE()) <= 15 THEN 'Próximo a vencer'
+        ELSE 'Activa'
+    END as estado_suscripcion_calculado,
+    -- Información del último pago
+    (SELECT MAX(fecha_pago) FROM pagos p WHERE p.id_usuario = u.id) as ultimo_pago,
+    (SELECT monto FROM pagos p WHERE p.id_usuario = u.id ORDER BY fecha_pago DESC LIMIT 1) as monto_ultimo_pago
+FROM usuarios u
+WHERE u.tipo = 'cliente';
+
+-- Vista de progreso de usuarios
 CREATE VIEW vista_progreso_usuarios AS
 SELECT 
     u.id,
@@ -197,12 +301,16 @@ SELECT
     u.apellido,
     COUNT(DISTINCT r.fecha) as dias_asistencia,
     MAX(r.fecha) as ultima_asistencia,
-    DATEDIFF(CURDATE(), MAX(r.fecha)) as dias_sin_ir
+    DATEDIFF(CURDATE(), MAX(r.fecha)) as dias_sin_ir,
+    vs.estado_suscripcion_calculado,
+    vs.dias_restantes
 FROM usuarios u
 LEFT JOIN rachas r ON u.id = r.id_usuario AND r.activa = TRUE
+LEFT JOIN vista_suscripciones vs ON u.id = vs.id
 WHERE u.tipo = 'cliente'
-GROUP BY u.id, u.nombre, u.apellido;
+GROUP BY u.id, u.nombre, u.apellido, vs.estado_suscripcion_calculado, vs.dias_restantes;
 
+-- Vista de racha actual
 CREATE VIEW vista_racha_actual AS
 SELECT 
     r.id_usuario,
@@ -222,3 +330,154 @@ WHERE r.activa = TRUE
             )
     )
 GROUP BY r.id_usuario;
+
+-- Vista de estadísticas de pagos
+CREATE VIEW vista_estadisticas_pagos AS
+SELECT 
+    DATE_FORMAT(fecha_pago, '%Y-%m') as mes,
+    COUNT(*) as total_pagos,
+    SUM(monto) as ingresos_totales,
+    AVG(monto) as promedio_pago,
+    modalidad_pago,
+    tipo_suscripcion
+FROM pagos 
+WHERE estado_pago = 'completado'
+GROUP BY DATE_FORMAT(fecha_pago, '%Y-%m'), modalidad_pago, tipo_suscripcion;
+
+-- =============================================
+-- DATOS INICIALES
+-- =============================================
+
+-- Insertar precios de suscripciones
+INSERT INTO precios_suscripciones (tipo_suscripcion, precio, fecha_inicio_vigencia, descripcion) VALUES 
+('semanal', 150.00, '2024-01-01', 'Suscripción semanal - Acceso completo al gimnasio'),
+('mensual', 500.00, '2024-01-01', 'Suscripción mensual - Acceso completo + 1 clase grupal'),
+('trimestral', 1350.00, '2024-01-01', 'Suscripción trimestral - 10% descuento + 2 clases grupales'),
+('semestral', 2400.00, '2024-01-01', 'Suscripción semestral - 20% descuento + clases grupales ilimitadas'),
+('anual', 4200.00, '2024-01-01', 'Suscripción anual - 30% descuento + entrenador personal');
+
+-- Insertar usuario admin por defecto
+INSERT INTO usuarios (email, password, nombre, apellido, tipo) 
+VALUES ('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin');
+
+-- Insertar algunos tips de ejemplo
+INSERT INTO tips (titulo, contenido, categoria) VALUES 
+('Hidratación', 'Toma al menos 8 vasos de agua al día. Tu rendimiento mejora un 25% con buena hidratación.', 'general'),
+('Proteína post-entreno', 'Consume proteína dentro de los 30 minutos después de entrenar para máxima recuperación.', 'nutricion'),
+('Descanso entre series', 'Para fuerza: 2-3 min. Para hipertrofia: 1-2 min. Para resistencia: 30-60 seg.', 'ejercicio'),
+('Mentalidad positiva', 'Cada día en el gym es una victoria. No importa qué tan pequeño sea el progreso.', 'mentalidad'),
+('Importancia del sueño', 'Dormir 7-8 horas es crucial para la recuperación muscular y el rendimiento.', 'recovery');
+
+-- =============================================
+-- PROCEDIMIENTOS ALMACENADOS ÚTILES
+-- =============================================
+
+-- Procedimiento para renovar suscripción
+DELIMITER //
+CREATE PROCEDURE RenovarSuscripcion(
+    IN p_id_usuario INT,
+    IN p_tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual'),
+    IN p_modalidad_pago ENUM('efectivo', 'transferencia', 'tarjeta', 'otro'),
+    IN p_monto DECIMAL(10,2),
+    IN p_referencia_pago VARCHAR(100),
+    IN p_registrado_por INT
+)
+BEGIN
+    DECLARE v_fecha_inicio DATE;
+    DECLARE v_fecha_fin DATE;
+    DECLARE v_dias_agregar INT;
+    
+    -- Determinar días a agregar según tipo de suscripción
+    CASE p_tipo_suscripcion
+        WHEN 'semanal' THEN SET v_dias_agregar = 7;
+        WHEN 'mensual' THEN SET v_dias_agregar = 30;
+        WHEN 'trimestral' THEN SET v_dias_agregar = 90;
+        WHEN 'semestral' THEN SET v_dias_agregar = 180;
+        WHEN 'anual' THEN SET v_dias_agregar = 365;
+    END CASE;
+    
+    -- Determinar fecha de inicio (hoy o fecha de vencimiento si aún está activa)
+    SELECT GREATEST(CURDATE(), IFNULL(fecha_fin_suscripcion, CURDATE()))
+    INTO v_fecha_inicio
+    FROM usuarios 
+    WHERE id = p_id_usuario;
+    
+    SET v_fecha_fin = DATE_ADD(v_fecha_inicio, INTERVAL v_dias_agregar DAY);
+    
+    -- Actualizar usuario
+    UPDATE usuarios SET 
+        tipo_suscripcion = p_tipo_suscripcion,
+        fecha_inicio_suscripcion = v_fecha_inicio,
+        fecha_fin_suscripcion = v_fecha_fin,
+        estado_suscripcion = 'activa',
+        modalidad_pago = p_modalidad_pago
+    WHERE id = p_id_usuario;
+    
+    -- Registrar pago
+    INSERT INTO pagos (
+        id_usuario, monto, tipo_suscripcion, modalidad_pago,
+        fecha_pago, fecha_inicio_periodo, fecha_fin_periodo,
+        referencia_pago, registrado_por
+    ) VALUES (
+        p_id_usuario, p_monto, p_tipo_suscripcion, p_modalidad_pago,
+        CURDATE(), v_fecha_inicio, v_fecha_fin,
+        p_referencia_pago, p_registrado_por
+    );
+    
+END//
+DELIMITER ;
+
+-- Procedimiento para actualizar estados de suscripciones vencidas
+DELIMITER //
+CREATE PROCEDURE ActualizarEstadosSuscripciones()
+BEGIN
+    UPDATE usuarios SET 
+        estado_suscripcion = 'vencida'
+    WHERE tipo = 'cliente' 
+        AND fecha_fin_suscripcion < CURDATE() 
+        AND estado_suscripcion = 'activa';
+END//
+DELIMITER ;
+
+-- =============================================
+-- EVENTOS PARA MANTENIMIENTO AUTOMÁTICO
+-- =============================================
+
+-- Evento para actualizar estados de suscripciones diariamente
+CREATE EVENT IF NOT EXISTS actualizar_suscripciones_diario
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_DATE + INTERVAL 1 DAY
+DO
+    CALL ActualizarEstadosSuscripciones();
+
+-- =============================================
+-- TRIGGERS PARA AUDITORÍA
+-- =============================================
+
+-- Trigger para registrar cambios en pagos
+DELIMITER //
+CREATE TRIGGER after_pago_insert
+AFTER INSERT ON pagos
+FOR EACH ROW
+BEGIN
+    -- Actualizar estadísticas del día
+    INSERT INTO estadisticas_gym (fecha, ingresos_dia)
+    VALUES (NEW.fecha_pago, NEW.monto)
+    ON DUPLICATE KEY UPDATE ingresos_dia = ingresos_dia + NEW.monto;
+END//
+DELIMITER ;
+
+-- =============================================
+-- DATOS DE PRUEBA (OPCIONAL)
+-- =============================================
+
+-- Insertar algunos usuarios de prueba
+INSERT INTO usuarios (email, password, nombre, apellido, tipo, tipo_suscripcion, fecha_inicio_suscripcion, fecha_fin_suscripcion, modalidad_pago) VALUES 
+('cliente1@gym.com', '$2y$10$ejemplo_hash', 'Juan', 'Pérez', 'cliente', 'mensual', '2024-06-01', '2024-07-01', 'efectivo'),
+('cliente2@gym.com', '$2y$10$ejemplo_hash', 'María', 'González', 'cliente', 'trimestral', '2024-05-15', '2024-08-15', 'transferencia'),
+('entrenador1@gym.com', '$2y$10$ejemplo_hash', 'Luis', 'Martínez', 'entrenador', 'mensual', '2024-01-01', '2025-01-01', 'efectivo');
+
+-- Insertar algunos pagos de prueba
+INSERT INTO pagos (id_usuario, monto, tipo_suscripcion, modalidad_pago, fecha_pago, fecha_inicio_periodo, fecha_fin_periodo, registrado_por) VALUES 
+(2, 500.00, 'mensual', 'efectivo', '2024-06-01', '2024-06-01', '2024-07-01', 1),
+(3, 1350.00, 'trimestral', 'transferencia', '2024-05-15', '2024-05-15', '2024-08-15', 1);

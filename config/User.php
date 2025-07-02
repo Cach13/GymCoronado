@@ -46,27 +46,52 @@ class User {
     }
 
     // Iniciar sesión
-    public function login($email, $password) {
+   public function login($email, $password) {
     $db = new Database();
-    $db->query("SELECT * FROM usuarios WHERE email = :email AND activo = 1");
+    $db->query("SELECT * FROM usuarios WHERE email = :email AND activo = 1 AND puede_acceder = 1");
     $db->bind(':email', $email);
     $user = $db->single();
 
-    if ($user && password_verify($password, $user['password'])) {
-        // Guardar datos en sesión
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_email'] = $user['email'];
-        $_SESSION['user_nombre'] = $user['nombre'];
-        $_SESSION['user_apellido'] = $user['apellido'];
-        $_SESSION['user_tipo'] = $user['tipo'];
-        $_SESSION['user_objetivo'] = $user['objetivo']; // ✅ Añadido
+    if ($user) {
+        if (password_verify($password, $user['password'])) {
+            // Guardar datos en sesión
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_nombre'] = $user['nombre'];
+            $_SESSION['user_apellido'] = $user['apellido'];
+            $_SESSION['user_tipo'] = $user['tipo'];
+            $_SESSION['user_objetivo'] = $user['objetivo'];
+            $_SESSION['user_puede_acceder'] = $user['puede_acceder']; // Guardar estado de acceso
+            
+            // Guardar información de suscripción si existe
+            if (isset($user['tipo_suscripcion'])) {
+                $_SESSION['user_tipo_suscripcion'] = $user['tipo_suscripcion'];
+                $_SESSION['user_fecha_fin_suscripcion'] = $user['fecha_fin_suscripcion'];
+                $_SESSION['user_estado_suscripcion'] = $user['estado_suscripcion'];
+                $_SESSION['user_modalidad_pago'] = $user['modalidad_pago'];
+            }
 
-        return ['success' => true, 'message' => 'Inicio de sesión exitoso'];
+            return ['success' => true, 'message' => 'Inicio de sesión exitoso'];
+        } else {
+            return ['success' => false, 'message' => 'Contraseña incorrecta'];
+        }
     } else {
+        // Determinar el motivo exacto del fallo
+        $db->query("SELECT * FROM usuarios WHERE email = :email");
+        $db->bind(':email', $email);
+        $userExists = $db->single();
+        
+        if ($userExists) {
+            if ($userExists['activo'] == 0) {
+                return ['success' => false, 'message' => 'Tu cuenta está desactivada'];
+            } elseif ($userExists['puede_acceder'] == 0) {
+                return ['success' => false, 'message' => 'Acceso temporalmente suspendido'];
+            }
+        }
+        
         return ['success' => false, 'message' => 'Credenciales incorrectas o usuario inactivo'];
     }
 }
-
 
     // Obtener usuario por ID
     public function get_user_by_id($id) {

@@ -14,19 +14,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     switch ($_POST['action']) {
         case 'toggle_user_status':
-            $result = $user->toggle_user_status($_POST['user_id']);
-            echo json_encode($result);
+            // Cambiar estado y actualizar campo para bloquear acceso
+            $db->query('UPDATE usuarios SET activo = NOT activo, puede_acceder = NOT puede_acceder WHERE id = :id');
+            $db->bind(':id', $_POST['user_id']);
+            if ($db->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Estado del usuario actualizado']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al cambiar estado']);
+            }
             exit;
             
         case 'delete_user':
-            $db->query('UPDATE usuarios SET activo = 0 WHERE id = :id');
-            $db->bind(':id', $_POST['user_id']);
-            if ($db->execute()) {
-                echo json_encode(['success' => true, 'message' => 'Usuario eliminado exitosamente']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Error al eliminar usuario']);
+        try {
+            $db->beginTransaction();
+            
+            // 1. Primero eliminar registros en tablas que referencian al usuario
+            $tablesToClean = [
+                'pagos' => 'id_usuario',
+                'medidas' => 'id_usuario',
+                'rachas' => 'id_usuario',
+                'registro_comidas' => 'id_usuario',
+                'objetivos_nutricionales' => 'id_usuario',
+                'alimentos_favoritos' => 'id_usuario',
+                'historial_acceso' => 'id_usuario'
+            ];
+            
+            foreach ($tablesToClean as $table => $column) {
+                $db->query("DELETE FROM $table WHERE $column = :id");
+                $db->bind(':id', $_POST['user_id']);
+                if (!$db->execute()) {
+                    throw new Exception("Error al limpiar tabla $table");
+                }
             }
-            exit;
+            
+            // 2. Eliminar rutinas creadas por el usuario si es entrenador
+            $db->query("DELETE FROM rutinas WHERE id_entrenador = :id");
+            $db->bind(':id', $_POST['user_id']);
+            $db->execute(); // No verificamos error aquí ya que puede no ser entrenador
+            
+            // 3. Finalmente eliminar al usuario
+            $db->query("DELETE FROM usuarios WHERE id = :id");
+            $db->bind(':id', $_POST['user_id']);
+            
+            if ($db->execute()) {
+                $db->endTransaction();
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Usuario y todos sus datos asociados eliminados permanentemente'
+                ]);
+            } else {
+                throw new Exception('No se pudo eliminar el usuario');
+            }
+        } catch (Exception $e) {
+            $db->cancelTransaction();
+            error_log("Error al eliminar usuario: " . $e->getMessage());
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Error al eliminar usuario: ' . $e->getMessage()
+            ]);
+        }
+        exit;
             
         case 'create_user':
             $userData = [
@@ -36,7 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'apellido' => gym_sanitize($_POST['apellido']),
                 'telefono' => gym_sanitize($_POST['telefono']),
                 'tipo' => $_POST['tipo'],
-                'objetivo' => $_POST['objetivo']
+                'objetivo' => $_POST['objetivo'],
+                'puede_acceder' => 1 // Nuevo usuario puede acceder por defecto
             ];
             
             $errors = $user->validate_registration($userData);
@@ -75,11 +123,13 @@ function getDashboardMetrics($db) {
     ];
 }
 
-// Obtener lista de usuarios
+// Obtener lista de usuarios (actualizada para incluir datos de suscripción)
 function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     $offset = ($page - 1) * $limit;
     
-    $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, fecha_registro FROM usuarios';
+    $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, fecha_registro, 
+              tipo_suscripcion, fecha_fin_suscripcion, estado_suscripcion, modalidad_pago 
+              FROM usuarios';
     $countQuery = 'SELECT COUNT(*) as total FROM usuarios';
     
     if ($tipo && $tipo !== 'todos') {
@@ -97,6 +147,18 @@ function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     $db->bind(':limit', $limit);
     $db->bind(':offset', $offset);
     $usuarios = $db->resultset();
+    
+    // Calcular días restantes para cada usuario
+    foreach ($usuarios as &$usuario) {
+        if ($usuario['fecha_fin_suscripcion']) {
+            $fechaFin = new DateTime($usuario['fecha_fin_suscripcion']);
+            $hoy = new DateTime();
+            $diasRestantes = $hoy->diff($fechaFin)->days;
+            $usuario['dias_restantes'] = $fechaFin >= $hoy ? $diasRestantes : 0;
+        } else {
+            $usuario['dias_restantes'] = null;
+        }
+    }
     
     // Obtener total para paginación
     $db->query($countQuery);
@@ -123,370 +185,8 @@ $currentUser = gym_get_logged_in_user();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración - <?php echo SITE_NAME; ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <link href="assets/css/admin.css" rel="stylesheet">
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-        }
-
-        .header {
-            background: linear-gradient(135deg,rgb(6, 21, 66) 0%,rgb(13, 37, 132) 100%);
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header h1 {
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            border-left: 4px solid;
-            transition: transform 0.2s ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .metric-card.users { border-left-color: #3b82f6; }
-        .metric-card.new-users { border-left-color: #10b981; }
-        .metric-card.active-today { border-left-color: #f59e0b; }
-        .metric-card.revenue { border-left-color: #8b5cf6; }
-
-        .metric-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .metric-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-        }
-
-        .metric-card.users .metric-icon { background: #3b82f6; }
-        .metric-card.new-users .metric-icon { background: #10b981; }
-        .metric-card.active-today .metric-icon { background: #f59e0b; }
-        .metric-card.revenue .metric-icon { background: #8b5cf6; }
-
-        .metric-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1f2937;
-        }
-
-        .metric-label {
-            color: #6b7280;
-            font-size: 0.9rem;
-        }
-
-        .section {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        .section-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-warning {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .filters {
-            padding: 1rem 1.5rem;
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .filter-select {
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            background: white;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th,
-        .table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .table th {
-            background: #f9fafb;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .table tr:hover {
-            background: #f9fafb;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .status-active {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-inactive {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .role-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .role-admin {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .role-entrenador {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .role-cliente {
-            background: #e0e7ff;
-            color: #3730a3;
-        }
-
-        .pagination {
-            padding: 1.5rem;
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .pagination a {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            text-decoration: none;
-            color: #374151;
-        }
-
-        .pagination a.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background: white;
-            margin: 10% auto;
-            padding: 2rem;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #374151;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 1rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 1rem;
-            }
-            
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .filters {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
-    </style>
 </head>
 <body>
     <header class="header">
@@ -579,6 +279,7 @@ $currentUser = gym_get_logged_in_user();
                             <th>Email</th>
                             <th>Teléfono</th>
                             <th>Tipo</th>
+                            <th>Suscripción</th>
                             <th>Estado</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
@@ -597,9 +298,40 @@ $currentUser = gym_get_logged_in_user();
                                 </span>
                             </td>
                             <td>
+                                <?php if ($usuario['tipo'] === 'cliente' && $usuario['tipo_suscripcion']): ?>
+                                    <div>
+                                        <strong><?php echo gym_format_subscription_type($usuario['tipo_suscripcion']); ?></strong>
+                                    </div>
+                                    <div>
+                                        <?php if ($usuario['dias_restantes'] !== null): ?>
+                                            <span class="days-remaining">
+                                                <?php echo $usuario['dias_restantes']; ?> días
+                                            </span>
+                                        <?php else: ?>
+                                            <span>Sin suscripción</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div>
+                                        <span class="payment-method">
+                                            <?php echo ucfirst($usuario['modalidad_pago'] ?? 'No especificado'); ?>
+                                        </span>
+                                    </div>
+                                <?php else: ?>
+                                    <span>N/A</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
                                 <span class="status-badge <?php echo $usuario['activo'] ? 'status-active' : 'status-inactive'; ?>">
                                     <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
                                 </span>
+                                <?php if ($usuario['tipo'] === 'cliente' && $usuario['estado_suscripcion']): ?>
+                                    <br>
+                                    <span class="subscription-badge 
+                                        <?php echo $usuario['estado_suscripcion'] === 'activa' ? 'subscription-active' : 
+                                              ($usuario['estado_suscripcion'] === 'vencida' ? 'subscription-expired' : 'subscription-pending'); ?>">
+                                        <?php echo ucfirst($usuario['estado_suscripcion']); ?>
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td><?php echo date('d/m/Y', strtotime($usuario['fecha_registro'])); ?></td>
                             <td>
@@ -679,113 +411,7 @@ $currentUser = gym_get_logged_in_user();
         </div>
     </div>
 
-    <script>
-        // Funciones del modal
-        function openCreateUserModal() {
-            document.getElementById('createUserModal').style.display = 'block';
-        }
 
-        function closeCreateUserModal() {
-            document.getElementById('createUserModal').style.display = 'none';
-            document.getElementById('createUserForm').reset();
-        }
-
-        // Cerrar modal al hacer clic fuera
-        window.onclick = function(event) {
-            const modal = document.getElementById('createUserModal');
-            if (event.target === modal) {
-                closeCreateUserModal();
-            }
-        }
-
-        // Crear usuario
-        document.getElementById('createUserForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            formData.append('action', 'create_user');
-            
-            fetch('', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Usuario creado exitosamente');
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al crear usuario');
-            });
-        });
-
-        // Cambiar estado de usuario
-        function toggleUserStatus(userId) {
-            if (confirm('¿Estás seguro de cambiar el estado de este usuario?')) {
-                const formData = new FormData();
-                formData.append('action', 'toggle_user_status');
-                formData.append('user_id', userId);
-                
-                fetch('', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al cambiar estado');
-                });
-            }
-        }
-
-        // Eliminar usuario
-        function deleteUser(userId) {
-            if (confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
-                const formData = new FormData();
-                formData.append('action', 'delete_user');
-                formData.append('user_id', userId);
-                
-                fetch('', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al eliminar usuario');
-                });
-            }
-        }
-
-        // Filtrar usuarios
-        function filterUsers(tipo) {
-            window.location.href = `?tipo=${tipo}&page=1`;
-        }
-
-        // Auto-refresh de métricas cada 30 segundos
-        setInterval(function() {
-            // Aquí podrías hacer una llamada AJAX para actualizar solo las métricas
-            // sin recargar toda la página
-        }, 30000);
-    </script>
+    <script src="assets/js/admin.js"></script>
 </body>
 </html>
