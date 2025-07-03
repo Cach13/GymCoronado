@@ -252,13 +252,19 @@ $currentUser = gym_get_logged_in_user();
         </div>
 
         <!-- Gestión de Usuarios -->
-        <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Gestión de Usuarios</h2>
+            <h2 class="section-title">Gestión de Usuarios</h2>
+            <div class="action-buttons">
                 <button class="btn btn-primary" onclick="openCreateUserModal()">
                     <i class="fas fa-plus"></i> Nuevo Usuario
                 </button>
+                <button> 
+                <a href="admin/rutinas.php" class="btn btn-secondary">
+                    <i class="fas fa-dumbbell"></i> Gestionar Rutinas
+                </a>
+                </button>
             </div>
+        </div>
             
             <div class="filters">
                 <label>Filtrar por tipo:</label>
