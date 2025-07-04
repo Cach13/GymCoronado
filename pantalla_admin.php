@@ -330,83 +330,120 @@ $currentUser = gym_get_logged_in_user();
                 </select>
             </div>
             
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Email</th>
-                            <th>Teléfono</th>
-                            <th>Tipo</th>
-                            <th>Suscripción</th>
-                            <th>Estado</th>
-                            <th>Fecha Registro</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($usuariosData['usuarios'] as $usuario): ?>
-                        <tr>
-                            <td><?php echo $usuario['id']; ?></td>
-                            <td><?php echo $usuario['nombre'] . ' ' . $usuario['apellido']; ?></td>
-                            <td><?php echo $usuario['email']; ?></td>
-                            <td><?php echo $usuario['telefono'] ?? 'No especificado'; ?></td>
-                            <td>
-                                <span class="role-badge role-<?php echo $usuario['tipo']; ?>">
-                                    <?php echo ucfirst($usuario['tipo']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <?php if ($usuario['tipo'] === 'cliente' && $usuario['tipo_suscripcion']): ?>
-                                    <div>
-                                        <strong><?php echo gym_format_subscription_type($usuario['tipo_suscripcion']); ?></strong>
-                                    </div>
-                                    <div>
-                                        <?php if ($usuario['dias_restantes'] !== null): ?>
-                                            <span class="days-remaining">
-                                                <?php echo $usuario['dias_restantes']; ?> días
+             <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Tipo</th>
+                        <th>Suscripción</th>
+                        <th>Dias faltantes</th>
+                        <th>Estado Suscripción</th>
+                        <th>Fecha Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($usuariosData['usuarios'] as $usuario): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($usuario['id']); ?></td>
+                        <td><?php echo htmlspecialchars($usuario['nombre'] . ' ' . $usuario['apellido']); ?></td>
+                        <td><?php echo htmlspecialchars($usuario['email']); ?></td>
+                        <td><?php echo !empty($usuario['telefono']) ? htmlspecialchars($usuario['telefono']) : 'No especificado'; ?></td>
+                        <td>
+                            <span class="role-badge role-<?php echo htmlspecialchars($usuario['tipo']); ?>">
+                                <?php echo ucfirst(htmlspecialchars($usuario['tipo'])); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <?php if ($usuario['tipo'] === 'cliente' && !empty($usuario['tipo_suscripcion'])): ?>
+                                <div>
+                                    <strong><?php echo htmlspecialchars(gym_format_subscription_type($usuario['tipo_suscripcion'])); ?></strong>
+                                </div>
+                                <div>
+                                    <?php if (isset($usuario['dias_restantes']) && $usuario['dias_restantes'] !== null): ?>
+                                        <span class="days-remaining">
+                                            <?php echo intval($usuario['dias_restantes']); ?> días
+                                        </span>
+                                    <?php else: ?>
+                                        <span>Sin suscripción</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <span class="payment-method">
+                                        <?php echo !empty($usuario['modalidad_pago']) ? ucfirst(htmlspecialchars($usuario['modalidad_pago'])) : 'No especificado'; ?>
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <span>N/A</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($usuario['tipo'] === 'cliente' && !empty($usuario['tipo_suscripcion'])): ?>
+                                <div>
+                                    <strong><?php echo htmlspecialchars(gym_format_subscription_type($usuario['tipo_suscripcion'])); ?></strong>
+                                </div>
+                                <div>
+                                    <?php if (isset($usuario['dias_restantes']) && $usuario['dias_restantes'] !== null): ?>
+                                        <?php if ($usuario['dias_restantes'] > 0): ?>
+                                            <span class="days-remaining text-success">
+                                                <?php echo intval($usuario['dias_restantes']); ?> días restantes
+                                            </span>
+                                        <?php elseif ($usuario['dias_restantes'] === 0): ?>
+                                            <span class="days-remaining text-warning">
+                                                Último día
                                             </span>
                                         <?php else: ?>
-                                            <span>Sin suscripción</span>
+                                            <span class="days-remaining text-danger">
+                                                Suscripción vencida
+                                            </span>
                                         <?php endif; ?>
-                                    </div>
-                                    <div>
-                                        <span class="payment-method">
-                                            <?php echo ucfirst($usuario['modalidad_pago'] ?? 'No especificado'); ?>
-                                        </span>
-                                    </div>
-                                <?php else: ?>
-                                    <span>N/A</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <span class="status-badge <?php echo $usuario['activo'] ? 'status-active' : 'status-inactive'; ?>">
-                                    <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
-                                </span>
-                                <?php if ($usuario['tipo'] === 'cliente' && $usuario['estado_suscripcion']): ?>
-                                    <br>
-                                    <span class="subscription-badge 
-                                        <?php echo $usuario['estado_suscripcion'] === 'activa' ? 'subscription-active' : 
-                                              ($usuario['estado_suscripcion'] === 'vencida' ? 'subscription-expired' : 'subscription-pending'); ?>">
-                                        <?php echo ucfirst($usuario['estado_suscripcion']); ?>
+                                    <?php else: ?>
+                                        <span>Sin suscripción</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <span class="payment-method">
+                                        <?php echo !empty($usuario['modalidad_pago']) ? ucfirst(htmlspecialchars($usuario['modalidad_pago'])) : 'No especificado'; ?>
                                     </span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo date('d/m/Y', strtotime($usuario['fecha_registro'])); ?></td>
-                            <td>
-                                <button class="btn btn-warning btn-sm" onclick="toggleUserStatus(<?php echo $usuario['id']; ?>)">
-                                    <i class="fas fa-toggle-<?php echo $usuario['activo'] ? 'on' : 'off'; ?>"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteUser(<?php echo $usuario['id']; ?>)">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            <?php else: ?>
+                                <span>N/A</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <td>
+                            <span class="status-badge <?php echo $usuario['activo'] ? 'status-active' : 'status-inactive'; ?>">
+                                <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
+                            </span>
+                            <?php if ($usuario['tipo'] === 'cliente' && !empty($usuario['estado_suscripcion'])): ?>
+                                <br>
+                                <span class="subscription-badge 
+                                    <?php echo $usuario['estado_suscripcion'] === 'activa' ? 'subscription-active' : 
+                                        ($usuario['estado_suscripcion'] === 'vencida' ? 'subscription-expired' : 'subscription-pending'); ?>">
+                                    <?php echo ucfirst(htmlspecialchars($usuario['estado_suscripcion'])); ?>
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo date('d/m/Y', strtotime($usuario['fecha_registro'])); ?></td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="toggleUserStatus(<?php echo intval($usuario['id']); ?>)">
+                                <i class="fas fa-toggle-<?php echo $usuario['activo'] ? 'on' : 'off'; ?>"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteUser(<?php echo intval($usuario['id']); ?>)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                        
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
             
             <?php if ($totalPaginas > 1): ?>
             <div class="pagination">

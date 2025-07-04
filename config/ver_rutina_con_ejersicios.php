@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../config/User.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/User.php';
 
 header('Content-Type: application/json');
 
@@ -32,23 +32,47 @@ try {
         throw new Exception('Rutina no encontrada', 404);
     }
 
-    // Verificar permisos (admin/entrenador pueden ver todas, clientes solo las asignadas)
-    if ($user['tipo'] === 'cliente') {
-        $db->query('SELECT 1 FROM usuario_rutinas 
-                   WHERE id_rutina = :rutina_id AND id_usuario = :user_id AND activa = 1');
-        $db->bind(':rutina_id', $rutina_id);
-        $db->bind(':user_id', $user['id']);
-        
-        if (!$db->single()) {
-            throw new Exception('No tienes permiso para ver esta rutina', 403);
-        }
-    }
-
+    // Las rutinas preestablecidas son visibles para todos los usuarios autenticados
+    // Solo verificamos permisos especiales si es necesario
+    
     // Decodificar ejercicios JSON
     $ejercicios = json_decode($rutina['ejercicios'], true);
     if (json_last_error() !== JSON_ERROR_NONE) {
         $ejercicios = [];
-        error_log("Error decodificando ejercicios para rutina ID: $rutina_id");
+        error_log("Error decodificando ejercicios para rutina ID: $rutina_id - Error: " . json_last_error_msg());
+    }
+
+    // Si los ejercicios están en formato de IDs, obtener la información completa
+    if (!empty($ejercicios)) {
+        $ejercicios_completos = [];
+        
+        foreach ($ejercicios as $ejercicio) {
+            // Si el ejercicio tiene un ID, obtener información completa
+            if (isset($ejercicio['id'])) {
+                $db->query('SELECT * FROM ejercicios_preestablecidos WHERE id = :id');
+                $db->bind(':id', $ejercicio['id']);
+                $ejercicio_completo = $db->single();
+                
+                if ($ejercicio_completo) {
+                    $ejercicios_completos[] = [
+                        'id' => $ejercicio_completo['id'],
+                        'nombre' => $ejercicio_completo['nombre'],
+                        'descripcion' => $ejercicio_completo['instrucciones'] ?? '',
+                        'series' => $ejercicio['series'] ?? $ejercicio_completo['series'],
+                        'repeticiones' => $ejercicio['repeticiones'] ?? $ejercicio_completo['repeticiones'],
+                        'descanso' => $ejercicio['descanso'] ?? $ejercicio_completo['tiempo_descanso'],
+                        'instrucciones' => $ejercicio['instrucciones'] ?? $ejercicio_completo['instrucciones'],
+                        'grupo_muscular' => $ejercicio_completo['grupo_muscular'],
+                        'imagen_url' => $ejercicio_completo['imagen_url']
+                    ];
+                }
+            } else {
+                // Si ya tiene toda la información, usarla directamente
+                $ejercicios_completos[] = $ejercicio;
+            }
+        }
+        
+        $ejercicios = $ejercicios_completos;
     }
 
     // Preparar respuesta
@@ -57,14 +81,15 @@ try {
         'titulo' => $rutina['titulo'],
         'descripcion' => $rutina['descripcion'],
         'categoria' => ucfirst($rutina['categoria']),
-        'objetivo' => $rutina['objetivo'],
+        'objetivo' => str_replace('_', ' ', ucfirst($rutina['objetivo'])),
         'duracion_minutos' => $rutina['duracion_minutos'],
         'entrenador_nombre' => $rutina['entrenador_nombre'],
         'entrenador_apellido' => $rutina['entrenador_apellido'],
-        'ejercicios' => $ejercicios
+        'ejercicios' => $ejercicios,
+        'total_ejercicios' => count($ejercicios)
     ];
 
-    echo json_encode($response);
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
     http_response_code($e->getCode() ?: 500);
@@ -72,5 +97,6 @@ try {
         'success' => false,
         'message' => $e->getMessage(),
         'code' => $e->getCode()
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 }
+?>

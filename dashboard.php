@@ -459,7 +459,7 @@ $historialPagos = $db->resultset();
                     </a>
                     <ul class="dropdown-menu" id="rutinasSubmenu">
                         <li>
-                            <a class="dropdown-item" href="includes/ver_rutina_con_ejersicios.php">
+                            <a class="dropdown-item" href="../user/rutinas/rutinas_user.php">
                                 <i class="fas fa-list me-2"></i>
                                 Ver Rutinas
                             </a>

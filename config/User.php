@@ -570,6 +570,21 @@ class User {
         }
     }
 
+    public function obtener_rutina_con_ejercicios($rutina_id) {
+    $this->db->query('SELECT r.*, u.nombre as entrenador_nombre, u.apellido as entrenador_apellido 
+                      FROM rutinas r
+                      JOIN usuarios u ON r.id_entrenador = u.id
+                      WHERE r.id = :rutina_id');
+    $this->db->bind(':rutina_id', $rutina_id);
+    $rutina = $this->db->single();
+    
+    if ($rutina) {
+        $rutina['ejercicios'] = json_decode($rutina['ejercicios'], true);
+    }
+    
+    return $rutina;
+}
+
     
 }
 ?>
