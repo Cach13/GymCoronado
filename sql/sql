@@ -254,6 +254,17 @@ CREATE TABLE cache_api_alimentos (
     UNIQUE KEY unique_busqueda_api (termino_busqueda, api_nombre),
     INDEX idx_expiracion (expira_en)
 );
+--Tabla rutinas asignadas a usuarios
+CREATE TABLE IF NOT EXISTS usuario_rutinas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    rutina_id INT NOT NULL,
+    fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activa BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (rutina_id) REFERENCES rutinas(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_usuario_rutina (usuario_id, rutina_id)
+);
 
     -- Tabla de ejercicios preestablecidos
     CREATE TABLE IF NOT EXISTS ejercicios_preestablecidos (

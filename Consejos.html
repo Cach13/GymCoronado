@@ -2,64 +2,1285 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="css/nav.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Rutinas - Panel Administrativo</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --secondary-color: #64748b;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --background-color: #f8fafc;
+        --surface-color: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --border-color: #e2e8f0;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
 
-    <title>Inicio | Coronado GYM</title>
-    
-    </head>
-    <body>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-    <!-- NAVBAR -->
-    <header class="navbar">
-    <div class="logo">GYM GECK</div>
-    <nav>
-        <ul>
-        <li><a href="index.html">Inicio</a></li>
-        <li><a href="consejos.html">Consejos</a></li>
-        <li><a href="precios.html">Precios</a></li>
-        <li><a href="rutinas.html">Rutinas</a></li>
-        <li><a href="macros.html">Macros</a></li>
-        <li><a href="login.html">Iniciar sesión</a></li>
-        </ul>
-    </nav>
-    </header>
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--background-color);
+        color: var(--text-primary);
+        line-height: 1.6;
+        font-size: 14px;
+    }
 
-        <!-- Hero -->
-    <section class="bg-gradient-to-r from-blue-400 to-blue-900 text-white text-center py-24 px-6">
-        <h2 class="text-4xl font-bold mb-4">¡Transforma tu cuerpo!</h2>
-        <p class="text-lg mb-6">Entrena con los mejores, mejora tu vida.</p>
-        <a href="#" class="bg-white text-blue-900 font-bold py-3 px-6 rounded hover:bg-blue-200 transition">Únete ahora</a>
-    </section>
+    /* Header mejorado */
+    .header {
+        background: var(--gradient-primary);
+        color: white;
+        padding: 1.5rem 0;
+        box-shadow: var(--shadow-lg);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
 
-    <!-- ¿Por qué elegirnos? -->
-    <section class="max-w-5xl mx-auto py-16 px-6">
-        <h3 class="text-2xl font-bold text-blue-900 mb-4">¿Por qué elegirnos?</h3>
-        <p class="text-gray-700">
-        Ofrecemos rutinas personalizadas, asesoría profesional, ambiente motivador y un sistema de seguimiento para que no te detengas. ¡Este es el lugar donde empiezan los cambios!
-        </p>
-    </section>
+    .header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+        pointer-events: none;
+    }
 
-    <!-- Testimonios -->
-    <section class="max-w-5xl mx-auto py-16 px-6 bg-white">
-        <h3 class="text-2xl font-bold text-blue-900 mb-8">Testimonios</h3>
-        <div class="grid md:grid-cols-2 gap-6">
-        <div class="bg-blue-100 p-6 rounded-lg shadow">
-            <p class="italic">"Este gym cambió mi vida, ahora me siento más fuerte y con mucha energía."</p>
-            <h4 class="mt-4 font-bold text-blue-800">- Luis R.</h4>
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        position: relative;
+    }
+
+    .header h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header h1::before {
+        content: '💪';
+        font-size: 2rem;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    /* Container mejorado */
+    .container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 2rem;
+    }
+
+    /* Secciones con mejor diseño */
+    .section {
+        background: var(--surface-color);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    .section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient-primary);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .section:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .section:hover::before {
+        opacity: 1;
+    }
+
+    .section-header {
+        padding: 1.5rem 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title::before {
+        content: '';
+        width: 4px;
+        height: 24px;
+        background: var(--gradient-primary);
+        border-radius: 2px;
+    }
+
+    .section-content {
+        padding: 2rem;
+    }
+
+    /* Formularios mejorados */
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: var(--surface-color);
+        font-family: inherit;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .form-input:hover, .form-select:hover, .form-textarea:hover {
+        border-color: var(--primary-color);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    /* Botones mejorados */
+    .btn {
+        padding: 0.875rem 1.75rem;
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .btn:hover::before {
+        left: 100%;
+    }
+
+    .btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-success {
+        background: var(--gradient-success);
+        color: white;
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-secondary {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #475569;
+        transform: translateY(-1px);
+    }
+
+    /* Alertas mejoradas */
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        border-left: 4px solid;
+        position: relative;
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateX(-100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        color: #166534;
+        border-left-color: var(--success-color);
+    }
+
+    .alert-error {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        color: #991b1b;
+        border-left-color: var(--danger-color);
+    }
+
+    /* Grid de ejercicios mejorado */
+    .exercise-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .exercise-group {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .exercise-group::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+    }
+
+    .exercise-group:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .exercise-group h5 {
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .exercise-group h5::before {
+        content: '🏋️';
+        font-size: 1.2rem;
+    }
+
+    /* Elementos de ejercicio mejorados */
+    .form-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+        background: var(--surface-color);
+        border: 1px solid transparent;
+    }
+
+    .form-check:hover {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-color: var(--border-color);
+        transform: translateX(4px);
+    }
+
+    .form-check-input {
+        width: 18px;
+        height: 18px;
+        margin-top: 0.125rem;
+        accent-color: var(--primary-color);
+        border-radius: 4px;
+    }
+
+    .form-check-label {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+        line-height: 1.5;
+        flex: 1;
+    }
+
+    .ejercicio-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        border-radius: var(--radius-md);
+        margin-bottom: 0.5rem;
+    }
+
+    .ejercicio-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .ejercicio-item:hover {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        transform: translateX(4px);
+    }
+
+    .ejercicio-info {
+        flex: 1;
+    }
+
+    .ejercicio-series {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Badges de dificultad mejorados */
+    .difficulty-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: 0.5rem;
+    }
+
+    .difficulty-principiante {
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        color: #166534;
+    }
+
+    .difficulty-principiante::before {
+        content: '🟢';
+        font-size: 0.75rem;
+    }
+
+    .difficulty-intermedio {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+    }
+
+    .difficulty-intermedio::before {
+        content: '🟡';
+        font-size: 0.75rem;
+    }
+
+    .difficulty-avanzado {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        color: #991b1b;
+    }
+
+    .difficulty-avanzado::before {
+        content: '🔴';
+        font-size: 0.75rem;
+    }
+
+    /* Contenedor de acciones mejorado */
+    .actions-container {
+        display: flex;
+        gap: 0.5rem;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+
+    .ejercicio-item:hover .actions-container,
+    .rutina-card:hover .actions-container {
+        opacity: 1;
+    }
+
+    /* Loading mejorado */
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 1rem;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .loading.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* Rutinas mejoradas */
+    .rutinas-list {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .rutina-card {
+        background: var(--surface-color);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        border-left: 4px solid var(--primary-color);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .rutina-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(45deg, transparent 40%, rgba(59, 130, 246, 0.1) 50%, transparent 60%);
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+    }
+
+    .rutina-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .rutina-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .rutina-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .rutina-meta {
+        display: flex;
+        gap: 1.5rem;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .rutina-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
+    }
+
+    .rutina-meta span::before {
+        content: '•';
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .rutina-ejercicios {
+        margin-top: 1.5rem;
+    }
+
+    .rutina-ejercicios h4 {
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .rutina-ejercicios ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    /* Modales mejorados */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+        background: var(--surface-color);
+        margin: 5% auto;
+        padding: 0;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+        width: 90%;
+        max-width: 600px;
+        max-height: 85vh;
+        overflow: hidden;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(100px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+    }
+
+    .close-modal:hover {
+        color: var(--text-primary);
+        background: var(--border-color);
+    }
+
+    .modal form {
+        padding: 2rem;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .confirmation-modal {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .confirmation-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    /* Responsivo mejorado */
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 1rem;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .exercise-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .section-content {
+            padding: 1.5rem;
+        }
+        
+        .rutina-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        
+        .rutina-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .actions-container {
+            opacity: 1;
+        }
+        
+        .modal-content {
+            width: 95%;
+            margin: 10% auto;
+        }
+    }
+
+    /* Animaciones adicionales */
+    @keyframes bounce {
+        0%, 20%, 53%, 80%, 100% {
+            transform: translate3d(0,0,0);
+        }
+        40%, 43% {
+            transform: translate3d(0, -10px, 0);
+        }
+        70% {
+            transform: translate3d(0, -5px, 0);
+        }
+        90% {
+            transform: translate3d(0, -2px, 0);
+        }
+    }
+
+    .btn:active {
+        animation: bounce 0.6s;
+    }
+
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--border-color);
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-hover);
+    }
+</style>
+<body>
+     <div class="header">
+        <div class="header-content">
+            <h1>Gestión de Rutinas</h1>
         </div>
-        <div class="bg-blue-100 p-6 rounded-lg shadow">
-            <p class="italic">"Gracias al sistema de racha nunca me rindo, me encanta ver mi progreso."</p>
-            <h4 class="mt-4 font-bold text-blue-800">- Karla M.</h4>
-        </div>
-        </div>
-    </section>
+    </div>
 
-    <!-- Footer -->
-    <footer class="bg-blue-900 text-white text-center py-8">
-        <p class="font-semibold">&copy; 2025 GYM GECK. Todos los derechos reservados.</p>
-        <p class="text-sm text-blue-200 mt-2">Desarrollado por <span class="font-bold">GECK Codex</span></p>
-    </footer>
+    <div class="container">
+        <?php 
+        // Mostrar alertas si existen
+        $alert = gym_get_alert();
+        if ($alert): ?>
+            <div class="alert alert-<?= $alert['type'] ?>">
+                <?= $alert['message'] ?>
+            </div>
+        <?php endif; ?>
 
-    
+        <!-- Sección: Agregar Ejercicio -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Agregar Nuevo Ejercicio</h2>
+            </div>
+            <div class="section-content">
+                <form id="formAgregarEjercicio" class="needs-validation" novalidate>
+                    <input type="hidden" name="action" value="agregar_ejercicio">
+                    
+                    <div class="form-group">
+                        <label for="nombre" class="form-label">Nombre del Ejercicio</label>
+                        <input type="text" class="form-input" id="nombre" name="nombre" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="grupo_muscular" class="form-label">Grupo Muscular</label>
+                        <select class="form-select" id="grupo_muscular" name="grupo_muscular" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="pecho">Pecho</option>
+                            <option value="espalda">Espalda</option>
+                            <option value="piernas">Piernas</option>
+                            <option value="brazos">Brazos</option>
+                            <option value="hombros">Hombros</option>
+                            <option value="core">Core</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="fullbody">Full Body</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="series" class="form-label">Series</label>
+                            <input type="number" class="form-input" id="series" name="series" min="1" max="10" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="repeticiones" class="form-label">Repeticiones</label>
+                            <input type="text" class="form-input" id="repeticiones" name="repeticiones" placeholder="Ej: 8-12" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tiempo_descanso" class="form-label">Descanso</label>
+                            <input type="text" class="form-input" id="tiempo_descanso" name="tiempo_descanso" placeholder="Ej: 60 seg" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dificultad" class="form-label">Dificultad</label>
+                        <select class="form-select" id="dificultad" name="dificultad">
+                            <option value="principiante">Principiante</option>
+                            <option value="intermedio" selected>Intermedio</option>
+                            <option value="avanzado">Avanzado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="equipamiento" class="form-label">Equipamiento Necesario</label>
+                        <input type="text" class="form-input" id="equipamiento" name="equipamiento" placeholder="Ej: Mancuernas, Barra, etc.">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="instrucciones" class="form-label">Instrucciones Adicionales</label>
+                        <textarea class="form-textarea" id="instrucciones" name="instrucciones" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="imagen" class="form-label">URL de Imagen (opcional)</label>
+                        <input type="url" class="form-input" id="imagen" name="imagen_url" placeholder="https://...">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Agregar Ejercicio</button>
+                    <div class="loading" id="loadingEjercicio">Guardando ejercicio...</div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sección: Lista de Ejercicios -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Ejercicios Existentes</h2>
+            </div>
+            <div class="section-content">
+                <div class="exercise-grid">
+                    <?php 
+                    $grupos_musculares = [
+                        'piernas' => $ejercicios_pierna,
+                        'pecho' => $ejercicios_pecho,
+                        'espalda' => $ejercicios_espalda,
+                        'brazos' => $ejercicios_brazos,
+                        'hombros' => $ejercicios_hombros,
+                        'core' => $ejercicios_core,
+                        'cardio' => $ejercicios_cardio,
+                        'fullbody' => $ejercicios_fullbody
+                    ];
+                    
+                    foreach ($grupos_musculares as $grupo => $ejercicios): 
+                        if (!empty($ejercicios)): ?>
+                            <div class="exercise-group">
+                                <h5><?= ucfirst($grupo) ?></h5>
+                                <?php foreach ($ejercicios as $ejercicio): ?>
+                                    <div class="form-check ejercicio-item">
+                                        <div class="ejercicio-info">
+                                            <strong><?= $ejercicio['nombre'] ?></strong><br>
+                                            <small><?= $ejercicio['series'] ?>x<?= $ejercicio['repeticiones'] ?> - <?= $ejercicio['tiempo_descanso'] ?></small>
+                                            <span class="difficulty-badge difficulty-<?= $ejercicio['dificultad'] ?? 'intermedio' ?>">
+                                                <?= ucfirst($ejercicio['dificultad'] ?? 'intermedio') ?>
+                                            </span>
+                                        </div>
+                                        <div class="actions-container">
+                                            <button class="btn btn-warning btn-sm btn-editar-ejercicio" 
+                                                    data-id="<?= $ejercicio['id'] ?>"
+                                                    data-nombre="<?= htmlspecialchars($ejercicio['nombre']) ?>"
+                                                    data-grupo-muscular="<?= $ejercicio['grupo_muscular'] ?>"
+                                                    data-series="<?= $ejercicio['series'] ?>"
+                                                    data-repeticiones="<?= htmlspecialchars($ejercicio['repeticiones']) ?>"
+                                                    data-tiempo-descanso="<?= htmlspecialchars($ejercicio['tiempo_descanso']) ?>"
+                                                    data-dificultad="<?= $ejercicio['dificultad'] ?? 'intermedio' ?>"
+                                                    data-equipamiento="<?= htmlspecialchars($ejercicio['equipamiento_necesario'] ?? '') ?>"
+                                                    data-instrucciones="<?= htmlspecialchars($ejercicio['instrucciones'] ?? '') ?>"
+                                                    data-imagen-url="<?= htmlspecialchars($ejercicio['imagen_url'] ?? '') ?>">
+                                                Editar
+                                            </button>
+                                            <button class="btn btn-danger btn-sm btn-eliminar-ejercicio" 
+                                                    data-id="<?= $ejercicio['id'] ?>"
+                                                    data-nombre="<?= htmlspecialchars($ejercicio['nombre']) ?>">
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif;
+                    endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Crear Rutina -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Crear Nueva Rutina</h2>
+            </div>
+            <div class="section-content">
+                <form id="formCrearRutina" class="needs-validation" novalidate>
+                    <input type="hidden" name="action" value="crear_rutina">
+                    
+                    <div class="form-group">
+                        <label for="titulo" class="form-label">Título de la Rutina</label>
+                        <input type="text" class="form-input" id="titulo" name="titulo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-textarea" id="descripcion" name="descripcion" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="categoria" class="form-label">Categoría</label>
+                            <select class="form-select" id="categoria" name="categoria" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="fuerza">Fuerza</option>
+                                <option value="hipertrofia">Hipertrofia</option>
+                                <option value="resistencia">Resistencia</option>
+                                <option value="cardio">Cardio</option>
+                                <option value="flexibilidad">Flexibilidad</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="objetivo" class="form-label">Objetivo</label>
+                            <select class="form-select" id="objetivo" name="objetivo" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="perdida_grasa">Pérdida de grasa</option>
+                                <option value="ganancia_muscular">Ganancia muscular</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                                <option value="mejora_rendimiento">Mejora de rendimiento</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="duracion" class="form-label">Duración (minutos)</label>
+                            <input type="number" class="form-input" id="duracion" name="duracion" min="10" max="180" value="60">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Ejercicios a Incluir</label>
+                        <div class="exercise-grid">
+                            <?php foreach ($grupos_musculares as $grupo => $ejercicios): 
+                                if (!empty($ejercicios)): ?>
+                                    <div class="exercise-group">
+                                        <h5><?= ucfirst($grupo) ?></h5>
+                                        <?php foreach ($ejercicios as $ejercicio): ?>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="ejercicios[]" 
+                                                       value="<?= $ejercicio['id'] ?>" id="ejercicio_<?= $ejercicio['id'] ?>">
+                                                <label class="form-check-label" for="ejercicio_<?= $ejercicio['id'] ?>">
+                                                    <strong><?= $ejercicio['nombre'] ?></strong><br>
+                                                    <small><?= $ejercicio['series'] ?>x<?= $ejercicio['repeticiones'] ?> - <?= $ejercicio['tiempo_descanso'] ?></small>
+                                                    <span class="difficulty-badge difficulty-<?= $ejercicio['dificultad'] ?? 'intermedio' ?>">
+                                                        <?= ucfirst($ejercicio['dificultad'] ?? 'intermedio') ?>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif;
+                            endforeach; ?>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Crear Rutina</button>
+                    <div class="loading" id="loadingRutina">Creando rutina...</div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sección: Lista de Rutinas -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Rutinas Existentes</h2>
+            </div>
+            <div class="section-content">
+                <div class="rutinas-list">
+                    <?php if (empty($rutinas)): ?>
+                        <p>No hay rutinas creadas aún.</p>
+                    <?php else: ?>
+                        <?php foreach ($rutinas as $rutina): 
+                            $ejercicios = json_decode($rutina['ejercicios'], true);
+                        ?>
+                            <div class="rutina-card">
+                                <div class="rutina-header">
+                                    <h3 class="rutina-title"><?= $rutina['titulo'] ?></h3>
+                                    <div class="actions-container">
+                                        <button class="btn btn-warning btn-sm btn-editar-rutina"
+                                                data-id="<?= $rutina['id'] ?>"
+                                                data-titulo="<?= htmlspecialchars($rutina['titulo']) ?>"
+                                                data-descripcion="<?= htmlspecialchars($rutina['descripcion'] ?? '') ?>"
+                                                data-categoria="<?= $rutina['categoria'] ?>"
+                                                data-objetivo="<?= $rutina['objetivo'] ?>"
+                                                data-duracion="<?= $rutina['duracion_minutos'] ?>"
+                                                data-ejercicios="<?= htmlspecialchars(json_encode(array_column($ejercicios, 'id'))) ?>">
+                                            Editar
+                                        </button>
+                                        <button class="btn btn-danger btn-sm btn-eliminar-rutina"
+                                                data-id="<?= $rutina['id'] ?>"
+                                                data-titulo="<?= htmlspecialchars($rutina['titulo']) ?>">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="rutina-meta">
+                                    <span>Categoría: <?= ucfirst($rutina['categoria']) ?></span>
+                                    <span>Objetivo: <?= str_replace('_', ' ', ucfirst($rutina['objetivo'])) ?></span>
+                                    <span>Duración: <?= $rutina['duracion_minutos'] ?> min</span>
+                                </div>
+                                <?php if (!empty($rutina['descripcion'])): ?>
+                                    <p><?= $rutina['descripcion'] ?></p>
+                                <?php endif; ?>
+                                <div class="rutina-ejercicios">
+                                    <h4>Ejercicios incluidos:</h4>
+                                    <ul>
+                                        <?php foreach ($ejercicios as $ejercicio): ?>
+                                            <li class="ejercicio-item">
+                                                <div class="ejercicio-info">
+                                                    <strong><?= $ejercicio['nombre'] ?></strong>
+                                                    <div class="ejercicio-series">
+                                                        <?= $ejercicio['series'] ?>x<?= $ejercicio['repeticiones'] ?> - Descanso: <?= $ejercicio['descanso'] ?>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar ejercicio -->
+    <div id="modalEditarEjercicio" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar Ejercicio</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="formEditarEjercicio">
+                <input type="hidden" name="action" value="editar_ejercicio">
+                <input type="hidden" name="id" id="editarEjercicioId">
+                
+                <div class="form-group">
+                    <label for="editarNombre" class="form-label">Nombre del Ejercicio</label>
+                    <input type="text" class="form-input" id="editarNombre" name="nombre" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editarGrupoMuscular" class="form-label">Grupo Muscular</label>
+                    <select class="form-select" id="editarGrupoMuscular" name="grupo_muscular" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="pecho">Pecho</option>
+                        <option value="espalda">Espalda</option>
+                        <option value="piernas">Piernas</option>
+                        <option value="brazos">Brazos</option>
+                        <option value="hombros">Hombros</option>
+                        <option value="core">Core</option>
+                        <option value="cardio">Cardio</option>
+                        <option value="fullbody">Full Body</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editarSeries" class="form-label">Series</label>
+                        <input type="number" class="form-input" id="editarSeries" name="series" min="1" max="10" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editarRepeticiones" class="form-label">Repeticiones</label>
+                        <input type="text" class="form-input" id="editarRepeticiones" name="repeticiones" placeholder="Ej: 8-12" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editarTiempoDescanso" class="form-label">Descanso</label>
+                        <input type="text" class="form-input" id="editarTiempoDescanso" name="tiempo_descanso" placeholder="Ej: 60 seg" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editarDificultad" class="form-label">Dificultad</label>
+                    <select class="form-select" id="editarDificultad" name="dificultad">
+                        <option value="principiante">Principiante</option>
+                        <option value="intermedio" selected>Intermedio</option>
+                        <option value="avanzado">Avanzado</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editarEquipamiento" class="form-label">Equipamiento Necesario</label>
+                    <input type="text" class="form-input" id="editarEquipamiento" name="equipamiento" placeholder="Ej: Mancuernas, Barra, etc.">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editarInstrucciones" class="form-label">Instrucciones Adicionales</label>
+                    <textarea class="form-textarea" id="editarInstrucciones" name="instrucciones" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editarImagenUrl" class="form-label">URL de Imagen (opcional)</label>
+                    <input type="url" class="form-input" id="editarImagenUrl" name="imagen_url" placeholder="https://...">
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <div class="loading" id="loadingEditarEjercicio">Guardando cambios...</div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para confirmar eliminación de ejercicio -->
+    <div id="modalConfirmarEliminarEjercicio" class="modal">
+        <div class="modal-content confirmation-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Eliminación</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <p>¿Estás seguro que deseas eliminar el ejercicio "<span id="ejercicioAEliminarNombre"></span>"?</p>
+            <p>Esta acción no se puede deshacer.</p>
+            <div class="confirmation-buttons">
+                <button id="confirmarEliminarEjercicio" class="btn btn-danger">Eliminar</button>
+                <button class="btn btn-secondary close-modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar rutina -->
+    <div id="modalEditarRutina" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar Rutina</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="formEditarRutina">
+                <input type="hidden" name="action" value="editar_rutina">
+                <input type="hidden" name="id" id="editarRutinaId">
+                
+                <div class="form-group">
+                    <label for="editarTitulo" class="form-label">Título de la Rutina</label>
+                    <input type="text" class="form-input" id="editarTitulo" name="titulo" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editarDescripcion" class="form-label">Descripción</label>
+                    <textarea class="form-textarea" id="editarDescripcion" name="descripcion" rows="2"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editarCategoria" class="form-label">Categoría</label>
+                        <select class="form-select" id="editarCategoria" name="categoria" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="fuerza">Fuerza</option>
+                            <option value="hipertrofia">Hipertrofia</option>
+                            <option value="resistencia">Resistencia</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="flexibilidad">Flexibilidad</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editarObjetivo" class="form-label">Objetivo</label>
+                        <select class="form-select" id="editarObjetivo" name="objetivo" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="perdida_grasa">Pérdida de grasa</option>
+                            <option value="ganancia_muscular">Ganancia muscular</option>
+                            <option value="mantenimiento">Mantenimiento</option>
+                            <option value="mejora_rendimiento">Mejora de rendimiento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editarDuracion" class="form-label">Duración (minutos)</label>
+                        <input type="number" class="form-input" id="editarDuracion" name="duracion" min="10" max="180" value="60">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Ejercicios a Incluir</label>
+                    <div class="exercise-grid">
+                        <?php foreach ($grupos_musculares as $grupo => $ejercicios): 
+                            if (!empty($ejercicios)): ?>
+                                <div class="exercise-group">
+                                    <h5><?= ucfirst($grupo) ?></h5>
+                                    <?php foreach ($ejercicios as $ejercicio): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input ejercicio-checkbox" type="checkbox" name="ejercicios[]" 
+                                                   value="<?= $ejercicio['id'] ?>" id="editar_ejercicio_<?= $ejercicio['id'] ?>">
+                                            <label class="form-check-label" for="editar_ejercicio_<?= $ejercicio['id'] ?>">
+                                                <strong><?= $ejercicio['nombre'] ?></strong><br>
+                                                <small><?= $ejercicio['series'] ?>x<?= $ejercicio['repeticiones'] ?> - <?= $ejercicio['tiempo_descanso'] ?></small>
+                                                <span class="difficulty-badge difficulty-<?= $ejercicio['dificultad'] ?? 'intermedio' ?>">
+                                                    <?= ucfirst($ejercicio['dificultad'] ?? 'intermedio') ?>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif;
+                        endforeach; ?>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                    <div class="loading" id="loadingEditarRutina">Guardando cambios...</div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para confirmar eliminación de rutina -->
+    <div id="modalConfirmarEliminarRutina" class="modal">
+        <div class="modal-content confirmation-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Eliminación</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <p>¿Estás seguro que deseas eliminar la rutina "<span id="rutinaAEliminarTitulo"></span>"?</p>
+            <p>Esta acción no se puede deshacer.</p>
+            <div class="confirmation-buttons">
+                <button id="confirmarEliminarRutina" class="btn btn-danger">Eliminar</button>
+                <button class="btn btn-secondary close-modal">Cancelar</button>
+            </div>
+        </div>
+    </div>

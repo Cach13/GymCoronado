@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root'); // Cambia por tu usuario de MySQL
 define('DB_PASS', '');     // Cambia por tu contraseña de MySQL
-define('DB_NAME', 'gym_app'); // Base de datos actualizada
+define('DB_NAME', 'gym_appa'); // Base de datos actualizada
 
 // Configuración de la aplicación
 define('SITE_URL', 'http://localhost/gym_app/');

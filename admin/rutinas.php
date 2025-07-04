@@ -1,4 +1,5 @@
 <?php
+
 require_once '../config/config.php';
 require_once '../config/User.php';
 
@@ -28,6 +29,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
+// Editar un ejercicio preestablecido
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'editar_ejercicio') {
+    $id = intval($_POST['id']);
+    $data = [
+        'nombre' => gym_sanitize($_POST['nombre']),
+        'grupo_muscular' => gym_sanitize($_POST['grupo_muscular']),
+        'series' => intval($_POST['series']),
+        'repeticiones' => gym_sanitize($_POST['repeticiones']),
+        'tiempo_descanso' => gym_sanitize($_POST['tiempo_descanso']),
+        'instrucciones' => gym_sanitize($_POST['instrucciones'] ?? ''),
+        'dificultad' => gym_sanitize($_POST['dificultad'] ?? 'intermedio'),
+        'equipamiento_necesario' => gym_sanitize($_POST['equipamiento'] ?? ''),
+        'imagen_url' => filter_var($_POST['imagen_url'] ?? '', FILTER_SANITIZE_URL)
+    ];
+    
+    $result = $user->editar_ejercicio_preestablecido($id, $data);
+    echo json_encode($result);
+    exit;
+}
+
+// Eliminar un ejercicio preestablecido
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'eliminar_ejercicio') {
+    $id = intval($_POST['id']);
+    $result = $user->eliminar_ejercicio_preestablecido($id);
+    echo json_encode($result);
+    exit;
+}
+
 // Crear una rutina preestablecida
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'crear_rutina') {
     // Sanitizar datos de entrada
@@ -52,6 +81,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
+// Editar una rutina preestablecida
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'editar_rutina') {
+    $id = intval($_POST['id']);
+    $data = [
+        'titulo' => gym_sanitize($_POST['titulo']),
+        'descripcion' => gym_sanitize($_POST['descripcion'] ?? ''),
+        'categoria' => gym_sanitize($_POST['categoria']),
+        'objetivo' => gym_sanitize($_POST['objetivo']),
+        'duracion_minutos' => intval($_POST['duracion'] ?? 60)
+    ];
+    
+    $ejercicios_ids = [];
+    if (isset($_POST['ejercicios']) && is_array($_POST['ejercicios'])) {
+        foreach ($_POST['ejercicios'] as $id_ejercicio) {
+            $ejercicios_ids[] = intval($id_ejercicio);
+        }
+    }
+    
+    $result = $user->editar_rutina_preestablecida($id, $data, $ejercicios_ids);
+    echo json_encode($result);
+    exit;
+}
+
+// Eliminar una rutina preestablecida
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'eliminar_rutina') {
+    $id = intval($_POST['id']);
+    $result = $user->eliminar_rutina_preestablecida($id);
+    echo json_encode($result);
+    exit;
+}
+
 // Obtener ejercicios para mostrar
 $ejercicios_pierna = $user->obtener_ejercicios_preestablecidos('piernas');
 $ejercicios_pecho = $user->obtener_ejercicios_preestablecidos('pecho');
@@ -61,6 +121,9 @@ $ejercicios_hombros = $user->obtener_ejercicios_preestablecidos('hombros');
 $ejercicios_core = $user->obtener_ejercicios_preestablecidos('core');
 $ejercicios_cardio = $user->obtener_ejercicios_preestablecidos('cardio');
 $ejercicios_fullbody = $user->obtener_ejercicios_preestablecidos('fullbody');
+
+// Obtener rutinas existentes
+$rutinas = $user->obtener_rutinas_preestablecidas();
 ?>
 
 <!DOCTYPE html>
@@ -68,521 +131,811 @@ $ejercicios_fullbody = $user->obtener_ejercicios_preestablecidos('fullbody');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Rutinas - Panel Administrativo</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-        }
-
-        .header {
-            background: linear-gradient(135deg,rgb(6, 21, 66) 0%,rgb(13, 37, 132) 100%);
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header h1 {
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-        }
-
-        .section {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        .section-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .section-content {
-            padding: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #374151;
-        }
-
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #059669;
-            transform: translateY(-1px);
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        .exercise-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .exercise-group {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 1rem;
-        }
-
-        .exercise-group h5 {
-            color: #1f2937;
-            margin-bottom: 0.75rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-transform: capitalize;
-        }
-
-        .form-check {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-check-input {
-            width: 16px;
-            height: 16px;
-            margin-top: 0.25rem;
-            accent-color: #3b82f6;
-        }
-
-        .form-check-label {
-            font-size: 0.9rem;
-            color: #374151;
-            line-height: 1.4;
-        }
-
-        .difficulty-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-left: 0.5rem;
-        }
-
-        .difficulty-principiante {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .difficulty-intermedio {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .difficulty-avanzado {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 1rem;
-            color: #6b7280;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 1rem;
-            }
-            
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .exercise-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <title>Gestión de Rutinas y Ejercicios</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/rutina.css">
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <h1>Gestión de Rutinas</h1>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar">
+                <div class="sidebar-sticky">
+                    <h5>Gestión de Rutinas</h5>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#ejercicios" data-toggle="tab">
+                                <i class="fas fa-dumbbell"></i> Ejercicios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#rutinas" data-toggle="tab">
+                                <i class="fas fa-calendar-alt"></i> Rutinas
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-10 content">
+                <div class="tab-content">
+                    <!-- Sección de Ejercicios -->
+                    <div class="tab-pane fade show active" id="ejercicios">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Gestión de Ejercicios</h2>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEjercicio">
+                                <i class="fas fa-plus"></i> Nuevo Ejercicio
+                            </button>
+                        </div>
+
+                        <!-- Filtros -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <select id="filtroGrupo" class="form-select">
+                                    <option value="">Todos los grupos musculares</option>
+                                    <option value="piernas">Piernas</option>
+                                    <option value="pecho">Pecho</option>
+                                    <option value="espalda">Espalda</option>
+                                    <option value="brazos">Brazos</option>
+                                    <option value="hombros">Hombros</option>
+                                    <option value="core">Core</option>
+                                    <option value="cardio">Cardio</option>
+                                    <option value="fullbody">Full Body</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="filtroDificultad" class="form-select">
+                                    <option value="">Todas las dificultades</option>
+                                    <option value="principiante">Principiante</option>
+                                    <option value="intermedio">Intermedio</option>
+                                    <option value="avanzado">Avanzado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" id="buscarEjercicio" class="form-control" placeholder="Buscar ejercicio...">
+                            </div>
+                        </div>
+
+                        <!-- Lista de ejercicios por grupo muscular -->
+                        <?php
+                        $grupos = [
+                            'piernas' => ['ejercicios' => $ejercicios_pierna, 'titulo' => 'Piernas', 'icon' => 'fas fa-running'],
+                            'pecho' => ['ejercicios' => $ejercicios_pecho, 'titulo' => 'Pecho', 'icon' => 'fas fa-expand-arrows-alt'],
+                            'espalda' => ['ejercicios' => $ejercicios_espalda, 'titulo' => 'Espalda', 'icon' => 'fas fa-chevron-up'],
+                            'brazos' => ['ejercicios' => $ejercicios_brazos, 'titulo' => 'Brazos', 'icon' => 'fas fa-fist-raised'],
+                            'hombros' => ['ejercicios' => $ejercicios_hombros, 'titulo' => 'Hombros', 'icon' => 'fas fa-angle-double-up'],
+                            'core' => ['ejercicios' => $ejercicios_core, 'titulo' => 'Core', 'icon' => 'fas fa-circle-notch'],
+                            'cardio' => ['ejercicios' => $ejercicios_cardio, 'titulo' => 'Cardio', 'icon' => 'fas fa-heartbeat'],
+                            'fullbody' => ['ejercicios' => $ejercicios_fullbody, 'titulo' => 'Full Body', 'icon' => 'fas fa-user']
+                        ];
+
+                        foreach ($grupos as $grupo => $data):
+                        ?>
+                        <div class="card mb-4 grupo-ejercicios" data-grupo="<?php echo $grupo; ?>">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="<?php echo $data['icon']; ?>"></i>
+                                    <?php echo $data['titulo']; ?>
+                                    <span class="badge bg-primary ms-2"><?php echo count($data['ejercicios']); ?></span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <?php if (empty($data['ejercicios'])): ?>
+                                        <div class="col-12">
+                                            <p class="text-muted">No hay ejercicios registrados para este grupo muscular.</p>
+                                        </div>
+                                    <?php else: ?>
+                                        <?php foreach ($data['ejercicios'] as $ejercicio): ?>
+                                        <div class="col-md-6 col-lg-4 mb-3 ejercicio-card" data-grupo="<?php echo $grupo; ?>" data-dificultad="<?php echo strtolower($ejercicio['dificultad']); ?>">
+                                            <div class="card h-100">
+                                                <?php if (!empty($ejercicio['imagen_url'])): ?>
+                                                <img src="<?php echo htmlspecialchars($ejercicio['imagen_url']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($ejercicio['nombre']); ?>" style="height: 200px; object-fit: cover;">
+                                                <?php endif; ?>
+                                                <div class="card-body">
+                                                    <h6 class="card-title"><?php echo htmlspecialchars($ejercicio['nombre']); ?></h6>
+                                                    <p class="card-text small">
+                                                        <strong>Series:</strong> <?php echo $ejercicio['series']; ?><br>
+                                                        <strong>Repeticiones:</strong> <?php echo htmlspecialchars($ejercicio['repeticiones']); ?><br>
+                                                        <strong>Descanso:</strong> <?php echo htmlspecialchars($ejercicio['tiempo_descanso']); ?><br>
+                                                        <strong>Dificultad:</strong> 
+                                                        <span class="badge bg-<?php echo $ejercicio['dificultad'] === 'principiante' ? 'success' : ($ejercicio['dificultad'] === 'intermedio' ? 'warning' : 'danger'); ?>">
+                                                            <?php echo ucfirst($ejercicio['dificultad']); ?>
+                                                        </span>
+                                                    </p>
+                                                    <?php if (!empty($ejercicio['equipamiento_necesario'])): ?>
+                                                    <p class="card-text small">
+                                                        <strong>Equipamiento:</strong> <?php echo htmlspecialchars($ejercicio['equipamiento_necesario']); ?>
+                                                    </p>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($ejercicio['instrucciones'])): ?>
+                                                    <p class="card-text small text-muted">
+                                                        <?php echo htmlspecialchars(substr($ejercicio['instrucciones'], 0, 100)) . (strlen($ejercicio['instrucciones']) > 100 ? '...' : ''); ?>
+                                                    </p>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="card-footer bg-transparent">
+                                                    <div class="btn-group w-100">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editarEjercicio(<?php echo $ejercicio['id']; ?>)">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarEjercicio(<?php echo $ejercicio['id']; ?>)">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Sección de Rutinas -->
+                    <div class="tab-pane fade" id="rutinas">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Gestión de Rutinas</h2>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalRutina">
+                                <i class="fas fa-plus"></i> Nueva Rutina
+                            </button>
+                        </div>
+
+                        <!-- Filtros de rutinas -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <select id="filtroCategoria" class="form-select">
+                                    <option value="">Todas las categorías</option>
+                                    <option value="fuerza">Fuerza</option>
+                                    <option value="cardio">Cardio</option>
+                                    <option value="hiit">HIIT</option>
+                                    <option value="funcional">Funcional</option>
+                                    <option value="flexibilidad">Flexibilidad</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="filtroObjetivo" class="form-select">
+                                    <option value="">Todos los objetivos</option>
+                                    <option value="perdida_peso">Pérdida de peso</option>
+                                    <option value="ganancia_muscular">Ganancia muscular</option>
+                                    <option value="definicion">Definición</option>
+                                    <option value="resistencia">Resistencia</option>
+                                    <option value="fuerza">Fuerza</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" id="buscarRutina" class="form-control" placeholder="Buscar rutina...">
+                            </div>
+                        </div>
+
+                        <!-- Lista de rutinas -->
+                        <div class="row">
+                            <?php if (empty($rutinas)): ?>
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> No hay rutinas registradas. ¡Crea tu primera rutina!
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($rutinas as $rutina): ?>
+                                <div class="col-md-6 col-lg-4 mb-4 rutina-card" data-categoria="<?php echo strtolower($rutina['categoria']); ?>" data-objetivo="<?php echo strtolower($rutina['objetivo']); ?>">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title"><?php echo htmlspecialchars($rutina['titulo']); ?></h5>
+                                            <p class="card-text"><?php echo htmlspecialchars($rutina['descripcion']); ?></p>
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-tag"></i> <?php echo ucfirst($rutina['categoria']); ?>
+                                                </small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-bullseye"></i> <?php echo ucfirst(str_replace('_', ' ', $rutina['objetivo'])); ?>
+                                                </small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock"></i> <?php echo $rutina['duracion_minutos']; ?> minutos
+                                                </small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-dumbbell"></i> <?php echo isset($rutina['total_ejercicios']) ? $rutina['total_ejercicios'] : 0; ?> ejercicios
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-transparent">
+                                            <div class="btn-group w-100">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editarRutina(<?php echo $rutina['id']; ?>)">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-info" onclick="verRutina(<?php echo $rutina['id']; ?>)">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarRutina(<?php echo $rutina['id']; ?>)">
+                                                    <i class="fas fa-trash"></i> Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
-    <div class="container">
-        <?php 
-        // Mostrar alertas si existen
-        $alert = gym_get_alert();
-        if ($alert): ?>
-            <div class="alert alert-<?= $alert['type'] ?>">
-                <?= $alert['message'] ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Sección: Agregar Ejercicio -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">Agregar Nuevo Ejercicio</h2>
-            </div>
-            <div class="section-content">
-                <form id="formAgregarEjercicio" class="needs-validation" novalidate>
-                    <input type="hidden" name="action" value="agregar_ejercicio">
-                    
-                    <div class="form-group">
-                        <label for="nombre" class="form-label">Nombre del Ejercicio</label>
-                        <input type="text" class="form-input" id="nombre" name="nombre" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="grupo_muscular" class="form-label">Grupo Muscular</label>
-                        <select class="form-select" id="grupo_muscular" name="grupo_muscular" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="pecho">Pecho</option>
-                            <option value="espalda">Espalda</option>
-                            <option value="piernas">Piernas</option>
-                            <option value="brazos">Brazos</option>
-                            <option value="hombros">Hombros</option>
-                            <option value="core">Core</option>
-                            <option value="cardio">Cardio</option>
-                            <option value="fullbody">Full Body</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="series" class="form-label">Series</label>
-                            <input type="number" class="form-input" id="series" name="series" min="1" max="10" required>
+    <!-- Modal para agregar/editar ejercicio -->
+    <div class="modal fade" id="modalEjercicio" tabindex="-1" aria-labelledby="modalEjercicioLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEjercicioLabel">Agregar Ejercicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="formEjercicio">
+                    <div class="modal-body">
+                        <input type="hidden" id="ejercicioId" name="id">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nombreEjercicio" class="form-label">Nombre del Ejercicio *</label>
+                                    <input type="text" class="form-control" id="nombreEjercicio" name="nombre" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="grupoMuscular" class="form-label">Grupo Muscular *</label>
+                                    <select class="form-select" id="grupoMuscular" name="grupo_muscular" required>
+                                        <option value="">Seleccionar grupo</option>
+                                        <option value="piernas">Piernas</option>
+                                        <option value="pecho">Pecho</option>
+                                        <option value="espalda">Espalda</option>
+                                        <option value="brazos">Brazos</option>
+                                        <option value="hombros">Hombros</option>
+                                        <option value="core">Core</option>
+                                        <option value="cardio">Cardio</option>
+                                        <option value="fullbody">Full Body</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="repeticiones" class="form-label">Repeticiones</label>
-                            <input type="text" class="form-input" id="repeticiones" name="repeticiones" placeholder="Ej: 8-12" required>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="series" class="form-label">Series *</label>
+                                    <input type="number" class="form-control" id="series" name="series" min="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="repeticiones" class="form-label">Repeticiones *</label>
+                                    <input type="text" class="form-control" id="repeticiones" name="repeticiones" placeholder="ej: 10-12" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tiempoDescanso" class="form-label">Tiempo de Descanso *</label>
+                                    <input type="text" class="form-control" id="tiempoDescanso" name="tiempo_descanso" placeholder="ej: 60 seg" required>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="tiempo_descanso" class="form-label">Descanso</label>
-                            <input type="text" class="form-input" id="tiempo_descanso" name="tiempo_descanso" placeholder="Ej: 60 seg" required>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="dificultad" class="form-label">Dificultad</label>
+                                    <select class="form-select" id="dificultad" name="dificultad">
+                                        <option value="principiante">Principiante</option>
+                                        <option value="intermedio" selected>Intermedio</option>
+                                        <option value="avanzado">Avanzado</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="equipamiento" class="form-label">Equipamiento Necesario</label>
+                                    <input type="text" class="form-control" id="equipamiento" name="equipamiento" placeholder="ej: Mancuernas, Barra">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="imagenUrl" class="form-label">URL de la Imagen</label>
+                            <input type="url" class="form-control" id="imagenUrl" name="imagen_url" placeholder="https://...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="instrucciones" class="form-label">Instrucciones</label>
+                            <textarea class="form-control" id="instrucciones" name="instrucciones" rows="4" placeholder="Describe cómo realizar el ejercicio..."></textarea>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="dificultad" class="form-label">Dificultad</label>
-                        <select class="form-select" id="dificultad" name="dificultad">
-                            <option value="principiante">Principiante</option>
-                            <option value="intermedio" selected>Intermedio</option>
-                            <option value="avanzado">Avanzado</option>
-                        </select>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Ejercicio</button>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="equipamiento" class="form-label">Equipamiento Necesario</label>
-                        <input type="text" class="form-input" id="equipamiento" name="equipamiento" placeholder="Ej: Mancuernas, Barra, etc.">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="instrucciones" class="form-label">Instrucciones Adicionales</label>
-                        <textarea class="form-textarea" id="instrucciones" name="instrucciones" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="imagen" class="form-label">URL de Imagen (opcional)</label>
-                        <input type="url" class="form-input" id="imagen" name="imagen_url" placeholder="https://...">
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Agregar Ejercicio</button>
-                    <div class="loading" id="loadingEjercicio">Guardando ejercicio...</div>
                 </form>
             </div>
         </div>
+    </div>
 
-        <!-- Sección: Crear Rutina -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">Crear Nueva Rutina</h2>
-            </div>
-            <div class="section-content">
-                <form id="formCrearRutina" class="needs-validation" novalidate>
-                    <input type="hidden" name="action" value="crear_rutina">
-                    
-                    <div class="form-group">
-                        <label for="titulo" class="form-label">Título de la Rutina</label>
-                        <input type="text" class="form-input" id="titulo" name="titulo" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="descripcion" class="form-label">Descripción</label>
-                        <textarea class="form-textarea" id="descripcion" name="descripcion" rows="2"></textarea>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="categoria" class="form-label">Categoría</label>
-                            <select class="form-select" id="categoria" name="categoria" required>
-                                <option value="">Seleccionar...</option>
-                                <option value="fuerza">Fuerza</option>
-                                <option value="hipertrofia">Hipertrofia</option>
-                                <option value="resistencia">Resistencia</option>
-                                <option value="cardio">Cardio</option>
-                                <option value="flexibilidad">Flexibilidad</option>
-                            </select>
+    <!-- Modal para agregar/editar rutina -->
+    <div class="modal fade" id="modalRutina" tabindex="-1" aria-labelledby="modalRutinaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalRutinaLabel">Agregar Rutina</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="formRutina">
+                    <div class="modal-body">
+                        <input type="hidden" id="rutinaId" name="id">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tituloRutina" class="form-label">Título de la Rutina *</label>
+                                    <input type="text" class="form-control" id="tituloRutina" name="titulo" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="duracionRutina" class="form-label">Duración (minutos) *</label>
+                                    <input type="number" class="form-control" id="duracionRutina" name="duracion" min="1" value="60" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="categoriaRutina" class="form-label">Categoría *</label>
+                                    <select class="form-select" id="categoriaRutina" name="categoria" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        <option value="fuerza">Fuerza</option>
+                                        <option value="cardio">Cardio</option>
+                                        <option value="hiit">HIIT</option>
+                                        <option value="funcional">Funcional</option>
+                                        <option value="flexibilidad">Flexibilidad</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="objetivoRutina" class="form-label">Objetivo *</label>
+                                    <select class="form-select" id="objetivoRutina" name="objetivo" required>
+                                        <option value="">Seleccionar objetivo</option>
+                                        <option value="perdida_peso">Pérdida de peso</option>
+                                        <option value="ganancia_muscular">Ganancia muscular</option>
+                                        <option value="definicion">Definición</option>
+                                        <option value="resistencia">Resistencia</option>
+                                        <option value="fuerza">Fuerza</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcionRutina" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcionRutina" name="descripcion" rows="3" placeholder="Describe el objetivo y características de la rutina..."></textarea>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="objetivo" class="form-label">Objetivo</label>
-                            <select class="form-select" id="objetivo" name="objetivo" required>
-                                <option value="">Seleccionar...</option>
-                                <option value="perdida_grasa">Pérdida de grasa</option>
-                                <option value="ganancia_muscular">Ganancia muscular</option>
-                                <option value="mantenimiento">Mantenimiento</option>
-                                <option value="mejora_rendimiento">Mejora de rendimiento</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="duracion" class="form-label">Duración (minutos)</label>
-                            <input type="number" class="form-input" id="duracion" name="duracion" min="10" max="180" value="60">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Ejercicios a Incluir</label>
-                        <div class="exercise-grid">
-                            <?php 
-                            $grupos_musculares = [
-                                'piernas' => $ejercicios_pierna,
-                                'pecho' => $ejercicios_pecho,
-                                'espalda' => $ejercicios_espalda,
-                                'brazos' => $ejercicios_brazos,
-                                'hombros' => $ejercicios_hombros,
-                                'core' => $ejercicios_core,
-                                'cardio' => $ejercicios_cardio,
-                                'fullbody' => $ejercicios_fullbody
-                            ];
-                            
-                            foreach ($grupos_musculares as $grupo => $ejercicios): 
-                                if (!empty($ejercicios)): ?>
-                                    <div class="exercise-group">
-                                        <h5><?= ucfirst($grupo) ?></h5>
-                                        <?php foreach ($ejercicios as $ejercicio): ?>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="ejercicios[]" 
-                                                       value="<?= $ejercicio['id'] ?>" id="ejercicio_<?= $ejercicio['id'] ?>">
-                                                <label class="form-check-label" for="ejercicio_<?= $ejercicio['id'] ?>">
-                                                    <strong><?= $ejercicio['nombre'] ?></strong><br>
-                                                    <small><?= $ejercicio['series'] ?>x<?= $ejercicio['repeticiones'] ?> - <?= $ejercicio['tiempo_descanso'] ?></small>
-                                                    <span class="difficulty-badge difficulty-<?= $ejercicio['dificultad'] ?? 'intermedio' ?>">
-                                                        <?= ucfirst($ejercicio['dificultad'] ?? 'intermedio') ?>
-                                                    </span>
+                        <!-- Selección de ejercicios -->
+                        <div class="mb-3">
+                            <label class="form-label">Ejercicios de la Rutina *</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Ejercicios Disponibles</h6>
+                                    <div class="border p-3" style="height: 300px; overflow-y: auto;">
+                                        <div class="mb-2">
+                                            <input type="text" class="form-control form-control-sm" id="buscarEjerciciosModal" placeholder="Buscar ejercicios...">
+                                        </div>
+                                        <div id="listaEjerciciosDisponibles">
+                                            <?php
+                                            $todos_ejercicios = array_merge(
+                                                $ejercicios_pierna, $ejercicios_pecho, $ejercicios_espalda, 
+                                                $ejercicios_brazos, $ejercicios_hombros, $ejercicios_core, 
+                                                $ejercicios_cardio, $ejercicios_fullbody
+                                            );
+                                            foreach ($todos_ejercicios as $ejercicio):
+                                            ?>
+                                            <div class="form-check ejercicio-disponible" data-nombre="<?php echo strtolower($ejercicio['nombre']); ?>">
+                                                <input class="form-check-input" type="checkbox" value="<?php echo $ejercicio['id']; ?>" id="ejercicio_<?php echo $ejercicio['id']; ?>">
+                                                <label class="form-check-label" for="ejercicio_<?php echo $ejercicio['id']; ?>">
+                                                    <strong><?php echo htmlspecialchars($ejercicio['nombre']); ?></strong><br>
+                                                    <small class="text-muted"><?php echo ucfirst($ejercicio['grupo_muscular']); ?> - <?php echo $ejercicio['series']; ?> series</small>
                                                 </label>
                                             </div>
-                                        <?php endforeach; ?>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
-                                <?php endif;
-                            endforeach; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Ejercicios Seleccionados</h6>
+                                    <div class="border p-3" style="height: 300px; overflow-y: auto;">
+                                        <div id="listaEjerciciosSeleccionados">
+                                            <p class="text-muted">Selecciona ejercicios de la lista de la izquierda</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <button type="submit" class="btn btn-success">Crear Rutina</button>
-                    <div class="loading" id="loadingRutina">Creando rutina...</div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Rutina</button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- Modal para ver rutina -->
+    <div class="modal fade" id="modalVerRutina" tabindex="-1" aria-labelledby="modalVerRutinaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalVerRutinaLabel">Detalles de la Rutina</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="contenidoVerRutina">
+                    <!-- Contenido dinámico -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Manejo de formularios con AJAX
+        // Variables globales
+        let ejerciciosSeleccionados = [];
+        
+        // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
-            // Formulario de agregar ejercicio
-            document.getElementById('formAgregarEjercicio').addEventListener('submit', function(e) {
+            inicializarEventos();
+            configurarFiltros();
+        });
+
+        function inicializarEventos() {
+            // Tabs
+            document.querySelectorAll('[data-toggle="tab"]').forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = this.getAttribute('href');
+                    
+                    // Remover active de todos los tabs
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.remove('show', 'active');
+                    });
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    
+                    // Activar tab seleccionado
+                    document.querySelector(target).classList.add('show', 'active');
+                    this.classList.add('active');
+                });
+            });
+
+            // Formulario ejercicio
+            document.getElementById('formEjercicio').addEventListener('submit', function(e) {
                 e.preventDefault();
+                guardarEjercicio();
+            });
+
+            // Formulario rutina
+            document.getElementById('formRutina').addEventListener('submit', function(e) {
+                e.preventDefault();
+                guardarRutina();
+            });
+
+            // Checkboxes de ejercicios
+            document.querySelectorAll('#listaEjerciciosDisponibles input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        agregarEjercicioSeleccionado(this.value, this.nextElementSibling.querySelector('strong').textContent);
+                    } else {
+                        removerEjercicioSeleccionado(this.value);
+                    }
+                });
+            });
+
+            // Búsqueda en modal de rutina
+            document.getElementById('buscarEjerciciosModal').addEventListener('input', function() {
+                filtrarEjerciciosModal(this.value);
+            });
+        }
+
+        function configurarFiltros() {
+            // Filtros de ejercicios
+            document.getElementById('filtroGrupo').addEventListener('change', aplicarFiltrosEjercicios);
+            document.getElementById('filtroDificultad').addEventListener('change', aplicarFiltrosEjercicios);
+            document.getElementById('buscarEjercicio').addEventListener('input', aplicarFiltrosEjercicios);
+
+            // Filtros de rutinas
+            document.getElementById('filtroCategoria').addEventListener('change', aplicarFiltrosRutinas);
+            document.getElementById('filtroObjetivo').addEventListener('change', aplicarFiltrosRutinas);
+            document.getElementById('buscarRutina').addEventListener('input', aplicarFiltrosRutinas);
+        }
+
+        function aplicarFiltrosEjercicios() {
+            const grupo = document.getElementById('filtroGrupo').value;
+            const dificultad = document.getElementById('filtroDificultad').value;
+            const busqueda = document.getElementById('buscarEjercicio').value.toLowerCase();
+
+            document.querySelectorAll('.grupo-ejercicios').forEach(grupoCard => {
+                let mostrarGrupo = false;
+
+                if (grupo && grupoCard.dataset.grupo !== grupo) {
+                    grupoCard.style.display = 'none';
+                    return;
+                }
+
+                grupoCard.querySelectorAll('.ejercicio-card').forEach(ejercicio => {
+                    let mostrar = true;
+
+                    if (dificultad && ejercicio.dataset.dificultad !== dificultad) {
+                        mostrar = false;
+                    }
+
+                    if (busqueda) {
+                        const nombre = ejercicio.querySelector('.card-title').textContent.toLowerCase();
+                        if (!nombre.includes(busqueda)) {
+                            mostrar = false;
+                        }
+                    }
+
+                    ejercicio.style.display = mostrar ? 'block' : 'none';
+                    if (mostrar) mostrarGrupo = true;
+                });
+
+                grupoCard.style.display = mostrarGrupo ? 'block' : 'none';
+            });
+        }
+
+        function aplicarFiltrosRutinas() {
+            const categoria = document.getElementById('filtroCategoria').value;
+            const objetivo = document.getElementById('filtroObjetivo').value;
+            const busqueda = document.getElementById('buscarRutina').value.toLowerCase();
+
+            document.querySelectorAll('.rutina-card').forEach(rutina => {
+                let mostrar = true;
+
+                if (categoria && rutina.dataset.categoria !== categoria) {
+                    mostrar = false;
+                }
+
+                if (objetivo && rutina.dataset.objetivo !== objetivo) {
+                    mostrar = false;
+                }
+
+                if (busqueda) {
+                    const titulo = rutina.querySelector('.card-title').textContent.toLowerCase();
+                    const descripcion = rutina.querySelector('.card-text').textContent.toLowerCase();
+                    if (!titulo.includes(busqueda) && !descripcion.includes(busqueda)) {
+                        mostrar = false;
+                    }
+                }
+
+                rutina.style.display = mostrar ? 'block' : 'none';
+            });
+        }
+
+        function filtrarEjerciciosModal(busqueda) {
+            const busquedaLower = busqueda.toLowerCase();
+            document.querySelectorAll('.ejercicio-disponible').forEach(item => {
+                const nombre = item.dataset.nombre;
+                item.style.display = nombre.includes(busquedaLower) ? 'block' : 'none';
+            });
+        }
+
+        function agregarEjercicioSeleccionado(id, nombre) {
+            if (!ejerciciosSeleccionados.includes(id)) {
+                ejerciciosSeleccionados.push(id);
+                actualizarListaSeleccionados();
+            }
+        }
+
+        function removerEjercicioSeleccionado(id) {
+            ejerciciosSeleccionados = ejerciciosSeleccionados.filter(ejercicioId => ejercicioId !== id);
+            actualizarListaSeleccionados();
+        }
+
+        function actualizarListaSeleccionados() {
+            const lista = document.getElementById('listaEjerciciosSeleccionados');
+            if (ejerciciosSeleccionados.length === 0) {
+                lista.innerHTML = '<p class="text-muted">Selecciona ejercicios de la lista de la izquierda</p>';
+                return;
+            }
+
+            let html = '';
+            ejerciciosSeleccionados.forEach(id => {
+                const checkbox = document.getElementById(`ejercicio_${id}`);
+                const label = checkbox.nextElementSibling;
+                const nombre = label.querySelector('strong').textContent;
+                const detalles = label.querySelector('small').textContent;
                 
-                const loadingEjercicio = document.getElementById('loadingEjercicio');
-                const submitBtn = this.querySelector('button[type="submit"]');
-                
-                loadingEjercicio.classList.add('show');
-                submitBtn.disabled = true;
-                
-                fetch('', {
+                html += `
+                    <div class="alert alert-light d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${nombre}</strong><br>
+                            <small class="text-muted">${detalles}</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerEjercicioDeRutina('${id}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            lista.innerHTML = html;
+        }
+
+        function removerEjercicioDeRutina(id) {
+            document.getElementById(`ejercicio_${id}`).checked = false;
+            removerEjercicioSeleccionado(id);
+        }
+
+        function guardarEjercicio() {
+            const formData = new FormData(document.getElementById('formEjercicio'));
+            const esEdicion = document.getElementById('ejercicioId').value !== '';
+            
+            formData.append('action', esEdicion ? 'editar_ejercicio' : 'agregar_ejercicio');
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(esEdicion ? 'Ejercicio actualizado correctamente' : 'Ejercicio agregado correctamente');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudo guardar el ejercicio'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar el ejercicio');
+            });
+        }
+
+        function guardarRutina() {
+            if (ejerciciosSeleccionados.length === 0) {
+                alert('Debes seleccionar al menos un ejercicio para la rutina');
+                return;
+            }
+
+            const formData = new FormData(document.getElementById('formRutina'));
+            const esEdicion = document.getElementById('rutinaId').value !== '';
+            
+            formData.append('action', esEdicion ? 'editar_rutina' : 'crear_rutina');
+            
+            // Agregar ejercicios seleccionados
+            ejerciciosSeleccionados.forEach(id => {
+                formData.append('ejercicios[]', id);
+            });
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(esEdicion ? 'Rutina actualizada correctamente' : 'Rutina creada correctamente');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'No se pudo guardar la rutina'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar la rutina');
+            });
+        }
+
+        function editarEjercicio(id) {
+            // Aquí deberías hacer una petición para obtener los datos del ejercicio
+            // y llenar el formulario modal
+            document.getElementById('modalEjercicioLabel').textContent = 'Editar Ejercicio';
+            document.getElementById('ejercicioId').value = id;
+            
+            // Mostrar modal
+            new bootstrap.Modal(document.getElementById('modalEjercicio')).show();
+        }
+
+        function eliminarEjercicio(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este ejercicio?')) {
+                const formData = new FormData();
+                formData.append('action', 'eliminar_ejercicio');
+                formData.append('id', id);
+
+                fetch(window.location.href, {
                     method: 'POST',
-                    body: new FormData(this)
+                    body: formData
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message);
-                        this.reset(); // Limpiar formulario
-                        setTimeout(() => {
-                            location.reload(); // Recargar para ver los cambios
-                        }, 1000);
+                        alert('Ejercicio eliminado correctamente');
+                        location.reload();
                     } else {
-                        alert('Error: ' + data.message);
+                        alert('Error: ' + (data.message || 'No se pudo eliminar el ejercicio'));
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error al procesar la solicitud');
-                })
-                .finally(() => {
-                    loadingEjercicio.classList.remove('show');
-                    submitBtn.disabled = false;
-                });
-            });
-            
-            // Formulario de crear rutina
-            if (document.getElementById('formCrearRutina')) {
-                document.getElementById('formCrearRutina').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const loadingRutina = document.getElementById('loadingRutina');
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    
-                    // Verificar que al menos un ejercicio esté seleccionado
-                    const exercisesSelected = this.querySelectorAll('input[name="ejercicios[]"]:checked');
-                    if (exercisesSelected.length === 0) {
-                        alert('Por favor selecciona al menos un ejercicio para la rutina');
-                        return;
-                    }
-                    
-                    loadingRutina.classList.add('show');
-                    submitBtn.disabled = true;
-                    
-                    fetch('', {
-                        method: 'POST',
-                        body: new FormData(this)
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert(data.message);
-                            this.reset(); // Limpiar formulario
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error al procesar la solicitud');
-                    })
-                    .finally(() => {
-                        loadingRutina.classList.remove('show');
-                        submitBtn.disabled = false;
-                    });
+                    alert('Error al eliminar el ejercicio');
                 });
             }
+        }
+
+        function editarRutina(id) {
+            // Aquí deberías hacer una petición para obtener los datos de la rutina
+            // y llenar el formulario modal
+            document.getElementById('modalRutinaLabel').textContent = 'Editar Rutina';
+            document.getElementById('rutinaId').value = id;
+            
+            // Mostrar modal
+            new bootstrap.Modal(document.getElementById('modalRutina')).show();
+        }
+
+        function verRutina(id) {
+            // Aquí deberías hacer una petición para obtener los detalles completos de la rutina
+            // y mostrarlos en el modal
+            document.getElementById('contenidoVerRutina').innerHTML = '<p>Cargando detalles de la rutina...</p>';
+            new bootstrap.Modal(document.getElementById('modalVerRutina')).show();
+        }
+
+        function eliminarRutina(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta rutina?')) {
+                const formData = new FormData();
+                formData.append('action', 'eliminar_rutina');
+                formData.append('id', id);
+
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Rutina eliminada correctamente');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.message || 'No se pudo eliminar la rutina'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al eliminar la rutina');
+                });
+            }
+        }
+
+        // Limpiar formularios al cerrar modales
+        document.getElementById('modalEjercicio').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('formEjercicio').reset();
+            document.getElementById('ejercicioId').value = '';
+            document.getElementById('modalEjercicioLabel').textContent = 'Agregar Ejercicio';
+        });
+
+        document.getElementById('modalRutina').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('formRutina').reset();
+            document.getElementById('rutinaId').value = '';
+            document.getElementById('modalRutinaLabel').textContent = 'Agregar Rutina';
+            ejerciciosSeleccionados = [];
+            document.querySelectorAll('#listaEjerciciosDisponibles input[type="checkbox"]').forEach(cb => cb.checked = false);
+            actualizarListaSeleccionados();
         });
     </script>
+
+   
 </body>
 </html>
