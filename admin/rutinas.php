@@ -142,7 +142,7 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
             <!-- Sidebar -->
             <nav class="col-md-2 sidebar">
                 <div class="sidebar-sticky">
-                    <h5>Gestión de Rutinas</h5>
+                    <h5>Gestión</h5>
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link" href="#ejercicios" data-toggle="tab">
@@ -153,7 +153,13 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
                             <a class="nav-link" href="#rutinas" data-toggle="tab">
                                 <i class="fas fa-calendar-alt"></i> Rutinas
                             </a>
+                        </li>  
+                        <li class="nav-item">
+                            <a class="nav-link" href="/pantalla_admin.php">
+                                <i class="fas fa-user-cog"></i> Panel Admin
+                            </a>
                         </li>
+
                     </ul>
                 </div>
             </nav>
@@ -575,16 +581,11 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
     <div class="modal fade" id="modalVerRutina" tabindex="-1" aria-labelledby="modalVerRutinaLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalVerRutinaLabel">Detalles de la Rutina</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+                
                 <div class="modal-body" id="contenidoVerRutina">
                     <!-- Contenido dinámico -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
+                
             </div>
         </div>
     </div>
@@ -593,8 +594,8 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Variables globales
+    <script >
+           // Variables globales
         let ejerciciosSeleccionados = [];
         
         // Inicialización
@@ -944,15 +945,15 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <p class="mb-1"><strong>Creada por:</strong> ${data.entrenador_nombre} ${data.entrenador_apellido}</p>
-                            <p class="mb-1"><strong>Categoría:</strong> ${data.categoria}</p>
-                            <p class="mb-1"><strong>Objetivo:</strong> ${data.objetivo.replace('_', ' ')}</p>
-                            <p class="mb-1"><strong>Duración:</strong> ${data.duracion_minutos} minutos</p>
+                        <div class="info-card">
+                            <p><strong>Creada por:</strong> ${data.entrenador_nombre} ${data.entrenador_apellido}</p>
+                            <p><strong>Categoría:</strong> ${data.categoria}</p>
+                            <p><strong>Objetivo:</strong> ${data.objetivo.replace('_', ' ')}</p>
+                            <p><strong>Duración:</strong> ${data.duracion_minutos} minutos</p>
                         </div>
-                        
+
                         ${data.descripcion ? `<div class="alert alert-light mb-3">${data.descripcion}</div>` : ''}
-                        
+
                         <h6 class="mb-3">Ejercicios:</h6>
                         ${ejerciciosHTML}
                     </div>
@@ -960,15 +961,8 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     </div>
                 `;
-            } else {
-                contenido.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${data.message || 'Error al cargar los detalles de la rutina'}
-                    </div>
-                    <div class="text-center mb-3">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                `;
+
+
             }
         })
         .catch(error => {

@@ -842,6 +842,99 @@
     cursor: pointer;
 }
 
+/* --- Estilo general del modal --- */
+.modal-content {
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border: none;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+/* --- Header del modal --- */
+.modal-header {
+    background: linear-gradient(135deg, #007bff, #6610f2);
+    color: white;
+    padding: 1.2rem;
+    border-bottom: none;
+}
+
+.modal-title {
+    font-weight: bold;
+    font-size: 1.4rem;
+}
+
+/* --- Body con fondo suave --- */
+.modal-body {
+    padding: 2rem;
+    background-color: #f8f9fa;
+}
+
+/* --- Tarjetas con contorno azul --- */
+.modal-body .info-card {
+    background: #ffffff;
+    border: 2px solid #007bff;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.modal-body .info-card:hover {
+    transform: scale(1.01);
+}
+
+.modal-body .info-card p {
+    margin: 0.3rem 0;
+    font-size: 0.95rem;
+}
+
+/* --- Alerta de descripción --- */
+.modal-body .alert {
+    border-radius: 10px;
+    font-size: 0.9rem;
+    border-left: 4px solid #007bff;
+}
+
+/* --- Footer --- */
+.modal-footer {
+    background-color: #f1f1f1;
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+}
+
+/* --- Botón cerrar --- */
+.modal-footer .btn {
+    border-radius: 10px;
+    padding: 0.5rem 1.2rem;
+}
+
+.modal-body .list-group-item {
+    border: 2px solid #007bff;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    background-color: #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.modal-body .list-group-item:hover {
+    transform: scale(1.01);
+}
+
+.modal-body .list-group-numbered > .list-group-item::before {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    border-radius: 50%;
+    padding: 0.25rem 0.6rem;
+    margin-right: 0.75rem;
+}
+
+
+
+
 /* RESPONSIVE DESIGN */
 
 /* Tablets */
