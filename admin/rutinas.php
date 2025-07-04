@@ -589,6 +589,8 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
         </div>
     </div>
 
+    
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -887,11 +889,100 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
         }
 
         function verRutina(id) {
-            // Aquí deberías hacer una petición para obtener los detalles completos de la rutina
-            // y mostrarlos en el modal
-            document.getElementById('contenidoVerRutina').innerHTML = '<p>Cargando detalles de la rutina...</p>';
-            new bootstrap.Modal(document.getElementById('modalVerRutina')).show();
-        }
+    // Mostrar el modal con mensaje de carga
+    const modal = new bootstrap.Modal(document.getElementById('modalVerRutina'));
+    const contenido = document.getElementById('contenidoVerRutina');
+    
+    contenido.innerHTML = `
+        <div class="text-center my-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando detalles de la rutina...</p>
+        </div>
+    `;
+    modal.show();
+
+    // Realizar petición AJAX para obtener los detalles de la rutina
+    fetch(`../config/ver_rutina_con_ejersicios.php?id=${id}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al obtener los datos de la rutina');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Formatear los ejercicios como lista
+                let ejerciciosHTML = '';
+                if (data.ejercicios && data.ejercicios.length > 0) {
+                    ejerciciosHTML = '<ol class="list-group list-group-numbered">';
+                    data.ejercicios.forEach(ejercicio => {
+                        ejerciciosHTML += `
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">${ejercicio.nombre}</div>
+                                        ${ejercicio.series} series × ${ejercicio.repeticiones} repeticiones
+                                        <div class="text-muted small mt-1">Descanso: ${ejercicio.descanso}</div>
+                                        ${ejercicio.instrucciones ? `<div class="mt-2">${ejercicio.instrucciones}</div>` : ''}
+                                    </div>
+                                    ${ejercicio.imagen_url ? `<img src="${ejercicio.imagen_url}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">` : ''}
+                                </div>
+                            </li>
+                        `;
+                    });
+                    ejerciciosHTML += '</ol>';
+                } else {
+                    ejerciciosHTML = '<div class="alert alert-warning">No hay ejercicios definidos para esta rutina.</div>';
+                }
+
+                // Mostrar toda la información en el modal
+                contenido.innerHTML = `
+                    <div class="modal-header">
+                        <h5 class="modal-title">${data.titulo}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <p class="mb-1"><strong>Creada por:</strong> ${data.entrenador_nombre} ${data.entrenador_apellido}</p>
+                            <p class="mb-1"><strong>Categoría:</strong> ${data.categoria}</p>
+                            <p class="mb-1"><strong>Objetivo:</strong> ${data.objetivo.replace('_', ' ')}</p>
+                            <p class="mb-1"><strong>Duración:</strong> ${data.duracion_minutos} minutos</p>
+                        </div>
+                        
+                        ${data.descripcion ? `<div class="alert alert-light mb-3">${data.descripcion}</div>` : ''}
+                        
+                        <h6 class="mb-3">Ejercicios:</h6>
+                        ${ejerciciosHTML}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                `;
+            } else {
+                contenido.innerHTML = `
+                    <div class="alert alert-danger">
+                        ${data.message || 'Error al cargar los detalles de la rutina'}
+                    </div>
+                    <div class="text-center mb-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            contenido.innerHTML = `
+                <div class="alert alert-danger">
+                    Error al cargar los detalles de la rutina: ${error.message}
+                </div>
+                <div class="text-center mb-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            `;
+        });
+}
 
         function eliminarRutina(id) {
             if (confirm('¿Estás seguro de que quieres eliminar esta rutina?')) {

@@ -2,30 +2,83 @@
 require_once 'config/config.php';
 require_once 'config/User.php';
 
+// Verificar permisos y autenticación
 gym_check_permission('cliente');
 
-// Verificar que el usuario esté logueado
 if (!gym_is_logged_in()) {
     gym_redirect('login.php');
 }
 
 $user = gym_get_logged_in_user();
 $userObj = new User();
+
+// Obtener estadísticas del usuario
 $userStats = $userObj->get_user_stats($user['id']);
+
+// Obtener suscripción activa del usuario
+$subscription = $userObj->get_active_subscription($user['id']);
 
 // Calcular días restantes de membresía
 $diasRestantes = 0;
-if (!empty($user['fecha_vencimiento'])) {
-    $fechaVencimiento = new DateTime($user['fecha_vencimiento']);
+$estadoMembresia = 'Sin suscripción activa';
+
+if ($subscription) {
+    $fechaVencimiento = new DateTime($subscription['fecha_fin']);
     $fechaActual = new DateTime();
     $diferencia = $fechaActual->diff($fechaVencimiento);
     
     if ($fechaVencimiento > $fechaActual) {
         $diasRestantes = $diferencia->days;
+        $estadoMembresia = 'Activa';
     } else {
         $diasRestantes = -$diferencia->days; // Negativo si ya venció
+        $estadoMembresia = 'Vencida';
     }
+    
+    // Actualizar datos en sesión para consistencia
+    $_SESSION['user_tipo_suscripcion'] = $subscription['tipo_suscripcion'];
+    $_SESSION['user_fecha_fin_suscripcion'] = $subscription['fecha_fin'];
+    $_SESSION['user_estado_suscripcion'] = $subscription['estado'];
+    $_SESSION['user_modalidad_pago'] = $subscription['modalidad_pago'];
 }
+
+// Obtener rutinas asignadas al usuario
+$rutinasAsignadas = [];
+if (isset($user['id'])) {
+    $db = new Database();
+    $db->query('SELECT r.* FROM rutinas r 
+               JOIN usuario_rutinas ur ON r.id = ur.id_rutina 
+               WHERE ur.id_usuario = :user_id AND ur.activa = 1');
+    $db->bind(':user_id', $user['id']);
+    $rutinasAsignadas = $db->resultset();
+}
+
+// Obtener medidas corporales recientes
+$medidasRecientes = [];
+$db = new Database();
+$db->query('SELECT * FROM medidas 
+           WHERE id_usuario = :user_id 
+           ORDER BY fecha_medicion DESC LIMIT 5');
+$db->bind(':user_id', $user['id']);
+$medidasRecientes = $db->resultset();
+
+// Obtener objetivos nutricionales
+$objetivosNutricionales = [];
+$db->query('SELECT * FROM objetivos_nutricionales 
+           WHERE id_usuario = :user_id AND activo = 1 
+           ORDER BY fecha_inicio DESC LIMIT 1');
+$db->bind(':user_id', $user['id']);
+$objetivosNutricionales = $db->single();
+
+// Obtener historial de pagos
+$historialPagos = [];
+$db->query('SELECT p.*, s.tipo_suscripcion 
+           FROM pagos p
+           JOIN suscripciones s ON p.id = s.id_pago
+           WHERE p.id_usuario = :user_id
+           ORDER BY p.fecha_pago DESC LIMIT 5');
+$db->bind(':user_id', $user['id']);
+$historialPagos = $db->resultset();
 ?>
 
 <!DOCTYPE html>
@@ -406,7 +459,7 @@ if (!empty($user['fecha_vencimiento'])) {
                     </a>
                     <ul class="dropdown-menu" id="rutinasSubmenu">
                         <li>
-                            <a class="dropdown-item" href="user/rutinas/rutinas.php">
+                            <a class="dropdown-item" href="includes/ver_rutina_con_ejersicios.php">
                                 <i class="fas fa-list me-2"></i>
                                 Ver Rutinas
                             </a>

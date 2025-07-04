@@ -14,8 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     switch ($_POST['action']) {
         case 'toggle_user_status':
-            // Cambiar estado y actualizar campo para bloquear acceso
-            $db->query('UPDATE usuarios SET activo = NOT activo, puede_acceder = NOT puede_acceder WHERE id = :id');
+            // Cambiar estado activo del usuario
+            $db->query('UPDATE usuarios SET activo = NOT activo WHERE id = :id');
             $db->bind(':id', $_POST['user_id']);
             if ($db->execute()) {
                 echo json_encode(['success' => true, 'message' => 'Estado del usuario actualizado']);
@@ -24,56 +24,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             exit;
             
-        case 'delete_user':
-        try {
-            $db->beginTransaction();
-            
-            // 1. Primero eliminar registros en tablas que referencian al usuario
-            $tablesToClean = [
-                'pagos' => 'id_usuario',
-                'medidas' => 'id_usuario',
-                'rachas' => 'id_usuario',
-                'registro_comidas' => 'id_usuario',
-                'objetivos_nutricionales' => 'id_usuario',
-                'alimentos_favoritos' => 'id_usuario',
-                'historial_acceso' => 'id_usuario'
-            ];
-            
-            foreach ($tablesToClean as $table => $column) {
-                $db->query("DELETE FROM $table WHERE $column = :id");
-                $db->bind(':id', $_POST['user_id']);
-                if (!$db->execute()) {
-                    throw new Exception("Error al limpiar tabla $table");
-                }
-            }
-            
-            // 2. Eliminar rutinas creadas por el usuario si es entrenador
-            $db->query("DELETE FROM rutinas WHERE id_entrenador = :id");
+        case 'toggle_access_status':
+            // Cambiar estado de acceso del usuario
+            $db->query('UPDATE usuarios SET puede_acceder = NOT puede_acceder WHERE id = :id');
             $db->bind(':id', $_POST['user_id']);
-            $db->execute(); // No verificamos error aquí ya que puede no ser entrenador
-            
-            // 3. Finalmente eliminar al usuario
-            $db->query("DELETE FROM usuarios WHERE id = :id");
-            $db->bind(':id', $_POST['user_id']);
-            
             if ($db->execute()) {
-                $db->endTransaction();
-                echo json_encode([
-                    'success' => true, 
-                    'message' => 'Usuario y todos sus datos asociados eliminados permanentemente'
-                ]);
+                echo json_encode(['success' => true, 'message' => 'Estado de acceso actualizado']);
             } else {
-                throw new Exception('No se pudo eliminar el usuario');
+                echo json_encode(['success' => false, 'message' => 'Error al cambiar estado de acceso']);
             }
-        } catch (Exception $e) {
-            $db->cancelTransaction();
-            error_log("Error al eliminar usuario: " . $e->getMessage());
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Error al eliminar usuario: ' . $e->getMessage()
-            ]);
-        }
-        exit;
+            exit;
+            
+        case 'delete_user':
+            try {
+                $db->beginTransaction();
+                
+                // 1. Primero eliminar registros en tablas que referencian al usuario
+                $tablesToClean = [
+                    'pagos' => 'id_usuario',
+                    'medidas' => 'id_usuario',
+                    'rachas' => 'id_usuario',
+                    'registro_comidas' => 'id_usuario',
+                    'objetivos_nutricionales' => 'id_usuario',
+                    'alimentos_favoritos' => 'id_usuario',
+                    'historial_acceso' => 'id_usuario',
+                    'suscripciones' => 'id_usuario'
+                ];
+                
+                foreach ($tablesToClean as $table => $column) {
+                    $db->query("DELETE FROM $table WHERE $column = :id");
+                    $db->bind(':id', $_POST['user_id']);
+                    $db->execute(); // No verificamos error para permitir tablas vacías
+                }
+                
+                // 2. Eliminar rutinas creadas por el usuario si es entrenador
+                $db->query("DELETE FROM rutinas WHERE id_entrenador = :id");
+                $db->bind(':id', $_POST['user_id']);
+                $db->execute();
+                
+                // 3. Finalmente eliminar al usuario
+                $db->query("DELETE FROM usuarios WHERE id = :id");
+                $db->bind(':id', $_POST['user_id']);
+                
+                if ($db->execute()) {
+                    $db->endTransaction();
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Usuario y todos sus datos asociados eliminados permanentemente'
+                    ]);
+                } else {
+                    throw new Exception('No se pudo eliminar el usuario');
+                }
+            } catch (Exception $e) {
+                $db->cancelTransaction();
+                error_log("Error al eliminar usuario: " . $e->getMessage());
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Error al eliminar usuario: ' . $e->getMessage()
+                ]);
+            }
+            exit;
             
         case 'create_user':
             $userData = [
@@ -83,8 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'apellido' => gym_sanitize($_POST['apellido']),
                 'telefono' => gym_sanitize($_POST['telefono']),
                 'tipo' => $_POST['tipo'],
-                'objetivo' => $_POST['objetivo'],
-                'puede_acceder' => 1 // Nuevo usuario puede acceder por defecto
+                'objetivo' => $_POST['objetivo'] ?? 'mantener',
+                'fecha_nacimiento' => $_POST['fecha_nacimiento'] ?? null,
+                'genero' => $_POST['genero'] ?? null
             ];
             
             $errors = $user->validate_registration($userData);
@@ -93,6 +104,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode($result);
             } else {
                 echo json_encode(['success' => false, 'message' => implode(', ', $errors)]);
+            }
+            exit;
+            
+        case 'create_subscription':
+            try {
+                $user_id = $_POST['user_id'];
+                $tipo_suscripcion = $_POST['tipo_suscripcion'];
+                $modalidad_pago = $_POST['modalidad_pago'];
+                $monto = $_POST['monto'];
+                $referencia_pago = $_POST['referencia_pago'] ?? null;
+                
+                // Calcular fechas de suscripción
+                $fecha_inicio = date('Y-m-d');
+                $dias = [
+                    'semanal' => 7,
+                    'mensual' => 30,
+                    'trimestral' => 90,
+                    'semestral' => 180,
+                    'anual' => 365
+                ];
+                $fecha_fin = date('Y-m-d', strtotime("+{$dias[$tipo_suscripcion]} days"));
+                
+                $subscription_data = [
+                    'tipo_suscripcion' => $tipo_suscripcion,
+                    'modalidad_pago' => $modalidad_pago,
+                    'monto' => $monto,
+                    'referencia_pago' => $referencia_pago,
+                    'fecha_inicio' => $fecha_inicio,
+                    'fecha_fin' => $fecha_fin
+                ];
+                
+                $result = $user->create_subscription($user_id, $subscription_data);
+                echo json_encode($result);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
             }
             exit;
     }
@@ -108,12 +154,15 @@ function getDashboardMetrics($db) {
     $db->query('SELECT COUNT(*) as total FROM usuarios WHERE MONTH(fecha_registro) = MONTH(CURRENT_DATE()) AND YEAR(fecha_registro) = YEAR(CURRENT_DATE()) AND activo = 1');
     $nuevosUsuarios = $db->single()['total'];
     
-    // Usuarios activos hoy (simulado con registros recientes)
+    // Usuarios activos hoy
     $db->query('SELECT COUNT(*) as total FROM usuarios WHERE DATE(fecha_registro) = CURDATE() AND activo = 1');
     $usuariosHoy = $db->single()['total'];
     
-    // Ingresos mensuales (simulado - necesitarías tabla de pagos)
-    $ingresosMes = $totalUsuarios * 500; // Precio promedio de membresía
+    // Ingresos mensuales (usando la tabla de pagos)
+    $db->query("SELECT SUM(monto) as total FROM pagos 
+               WHERE MONTH(fecha_pago) = MONTH(CURRENT_DATE()) 
+               AND YEAR(fecha_pago) = YEAR(CURRENT_DATE())");
+    $ingresosMes = $db->single()['total'] ?? 0;
     
     return [
         'total_usuarios' => $totalUsuarios,
@@ -123,21 +172,23 @@ function getDashboardMetrics($db) {
     ];
 }
 
-// Obtener lista de usuarios (actualizada para incluir datos de suscripción)
+// Obtener lista de usuarios (actualizada para nueva estructura)
 function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     $offset = ($page - 1) * $limit;
     
-    $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, fecha_registro, 
-              tipo_suscripcion, fecha_fin_suscripcion, estado_suscripcion, modalidad_pago 
-              FROM usuarios';
+    $query = 'SELECT u.id, u.email, u.nombre, u.apellido, u.telefono, u.tipo, u.activo, u.puede_acceder, u.fecha_registro,
+              s.tipo_suscripcion, s.fecha_fin as fecha_fin_suscripcion, s.estado as estado_suscripcion, p.modalidad_pago
+              FROM usuarios u
+              LEFT JOIN suscripciones s ON u.id = s.id_usuario AND s.estado = "activa"
+              LEFT JOIN pagos p ON s.id_pago = p.id';
     $countQuery = 'SELECT COUNT(*) as total FROM usuarios';
     
     if ($tipo && $tipo !== 'todos') {
-        $query .= ' WHERE tipo = :tipo';
+        $query .= ' WHERE u.tipo = :tipo';
         $countQuery .= ' WHERE tipo = :tipo';
     }
     
-    $query .= ' ORDER BY fecha_registro DESC LIMIT :limit OFFSET :offset';
+    $query .= ' GROUP BY u.id ORDER BY u.fecha_registro DESC LIMIT :limit OFFSET :offset';
     
     // Obtener usuarios
     $db->query($query);
@@ -155,8 +206,10 @@ function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
             $hoy = new DateTime();
             $diasRestantes = $hoy->diff($fechaFin)->days;
             $usuario['dias_restantes'] = $fechaFin >= $hoy ? $diasRestantes : 0;
+            $usuario['estado_suscripcion'] = $fechaFin >= $hoy ? 'activa' : 'vencida';
         } else {
             $usuario['dias_restantes'] = null;
+            $usuario['estado_suscripcion'] = null;
         }
     }
     
@@ -170,6 +223,7 @@ function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     return ['usuarios' => $usuarios, 'total' => $total];
 }
 
+// Obtener datos para la vista
 $metrics = getDashboardMetrics($db);
 $tipoFiltro = $_GET['tipo'] ?? 'todos';
 $paginaActual = (int)($_GET['page'] ?? 1);

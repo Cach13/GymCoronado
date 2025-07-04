@@ -41,9 +41,8 @@ class User {
             return ['success' => false, 'message' => 'Error al registrar usuario'];
         }
     }
-    
 
-    // Iniciar sesión
+    // Iniciar sesión (actualizado para nueva estructura)
     public function login($email, $password) {
         $this->db->query("SELECT * FROM usuarios WHERE email = :email AND activo = 1 AND puede_acceder = 1");
         $this->db->bind(':email', $email);
@@ -51,6 +50,7 @@ class User {
 
         if ($user) {
             if (password_verify($password, $user['password'])) {
+                // Datos básicos del usuario
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['user_email'] = $user['email'];
                 $_SESSION['user_nombre'] = $user['nombre'];
@@ -58,12 +58,19 @@ class User {
                 $_SESSION['user_tipo'] = $user['tipo'];
                 $_SESSION['user_objetivo'] = $user['objetivo'];
                 $_SESSION['user_puede_acceder'] = $user['puede_acceder'];
-                
-                if (isset($user['tipo_suscripcion'])) {
-                    $_SESSION['user_tipo_suscripcion'] = $user['tipo_suscripcion'];
-                    $_SESSION['user_fecha_fin_suscripcion'] = $user['fecha_fin_suscripcion'];
-                    $_SESSION['user_estado_suscripcion'] = $user['estado_suscripcion'];
-                    $_SESSION['user_modalidad_pago'] = $user['modalidad_pago'];
+                $_SESSION['user_activo'] = $user['activo'];
+                $_SESSION['user_fecha_nacimiento'] = $user['fecha_nacimiento'] ?? null;
+                $_SESSION['user_genero'] = $user['genero'] ?? null;
+
+                // Obtener suscripción activa si es cliente
+                if ($user['tipo'] === 'cliente') {
+                    $subscription = $this->get_active_subscription($user['id']);
+                    if ($subscription) {
+                        $_SESSION['user_tipo_suscripcion'] = $subscription['tipo_suscripcion'];
+                        $_SESSION['user_fecha_fin_suscripcion'] = $subscription['fecha_fin'];
+                        $_SESSION['user_estado_suscripcion'] = $subscription['estado'];
+                        $_SESSION['user_modalidad_pago'] = $subscription['modalidad_pago'];
+                    }
                 }
 
                 return ['success' => true, 'message' => 'Inicio de sesión exitoso'];
@@ -85,6 +92,17 @@ class User {
             
             return ['success' => false, 'message' => 'Credenciales incorrectas o usuario inactivo'];
         }
+    }
+
+    // Obtener suscripción activa (nuevo método)
+    public function get_active_subscription($user_id) {
+        $this->db->query("SELECT s.*, p.modalidad_pago 
+                         FROM suscripciones s 
+                         LEFT JOIN pagos p ON s.id_pago = p.id 
+                         WHERE s.id_usuario = :user_id AND s.estado = 'activa'
+                         ORDER BY s.fecha_fin DESC LIMIT 1");
+        $this->db->bind(':user_id', $user_id);
+        return $this->db->single();
     }
 
     // Obtener usuario por ID
@@ -121,9 +139,12 @@ class User {
         $this->db->bind(':objetivo', $data['objetivo'] ?? 'mantener');
 
         if ($this->db->execute()) {
+            // Actualizar datos en sesión
             $_SESSION['user_nombre'] = $data['nombre'];
             $_SESSION['user_apellido'] = $data['apellido'];
             $_SESSION['user_objetivo'] = $data['objetivo'] ?? 'mantener';
+            $_SESSION['user_fecha_nacimiento'] = $data['fecha_nacimiento'] ?? null;
+            $_SESSION['user_genero'] = $data['genero'] ?? null;
             
             return ['success' => true, 'message' => 'Perfil actualizado exitosamente'];
         } else {
@@ -156,7 +177,7 @@ class User {
 
     // Obtener todos los usuarios (para admin)
     public function get_all_users($tipo = null, $limit = null, $offset = 0) {
-        $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, fecha_registro FROM usuarios';
+        $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, puede_acceder, fecha_registro FROM usuarios';
         
         if ($tipo) {
             $query .= ' WHERE tipo = :tipo';
@@ -194,6 +215,18 @@ class User {
         }
     }
 
+    // Habilitar/deshabilitar acceso (nuevo método)
+    public function toggle_access_status($user_id) {
+        $this->db->query('UPDATE usuarios SET puede_acceder = NOT puede_acceder WHERE id = :id');
+        $this->db->bind(':id', $user_id);
+        
+        if ($this->db->execute()) {
+            return ['success' => true, 'message' => 'Estado de acceso actualizado'];
+        } else {
+            return ['success' => false, 'message' => 'Error al actualizar estado de acceso'];
+        }
+    }
+
     // Crear objetivos nutricionales por defecto
     private function create_default_nutrition_goals($user_id) {
         $this->db->query('INSERT INTO objetivos_nutricionales 
@@ -202,11 +235,6 @@ class User {
         
         $this->db->bind(':user_id', $user_id);
         $this->db->execute();
-    }
-
-    // Actualizar último login
-    private function update_last_login($user_id) {
-        // Opcional: Implementar si se necesita tracking de logins
     }
 
     // Obtener estadísticas del usuario
@@ -251,6 +279,67 @@ class User {
         return $errors;
     }
 
+    // Métodos de suscripción (nuevos)
+    public function create_subscription($user_id, $subscription_data) {
+        $this->db->beginTransaction();
+        
+        try {
+            // Registrar el pago
+            $this->db->query('INSERT INTO pagos 
+                            (id_usuario, monto, modalidad_pago, fecha_pago, referencia_pago, registrado_por) 
+                            VALUES (:user_id, :monto, :modalidad, :fecha_pago, :referencia, :registrado_por)');
+            
+            $this->db->bind(':user_id', $user_id);
+            $this->db->bind(':monto', $subscription_data['monto']);
+            $this->db->bind(':modalidad', $subscription_data['modalidad_pago']);
+            $this->db->bind(':fecha_pago', date('Y-m-d'));
+            $this->db->bind(':referencia', $subscription_data['referencia_pago'] ?? null);
+            $this->db->bind(':registrado_por', $_SESSION['user_id']);
+            
+            $this->db->execute();
+            $payment_id = $this->db->lastInsertId();
+            
+            // Crear la suscripción
+            $this->db->query('INSERT INTO suscripciones 
+                            (id_usuario, id_pago, tipo_suscripcion, fecha_inicio, fecha_fin, estado) 
+                            VALUES (:user_id, :payment_id, :tipo, :inicio, :fin, :estado)');
+            
+            $this->db->bind(':user_id', $user_id);
+            $this->db->bind(':payment_id', $payment_id);
+            $this->db->bind(':tipo', $subscription_data['tipo_suscripcion']);
+            $this->db->bind(':inicio', $subscription_data['fecha_inicio']);
+            $this->db->bind(':fin', $subscription_data['fecha_fin']);
+            $this->db->bind(':estado', 'activa');
+            
+            $this->db->execute();
+            
+            $this->db->endTransaction();
+            
+            // Actualizar datos en sesión si es el usuario actual
+            if ($user_id == $_SESSION['user_id']) {
+                $_SESSION['user_tipo_suscripcion'] = $subscription_data['tipo_suscripcion'];
+                $_SESSION['user_fecha_fin_suscripcion'] = $subscription_data['fecha_fin'];
+                $_SESSION['user_estado_suscripcion'] = 'activa';
+                $_SESSION['user_modalidad_pago'] = $subscription_data['modalidad_pago'];
+            }
+            
+            return ['success' => true, 'message' => 'Suscripción creada exitosamente'];
+            
+        } catch (Exception $e) {
+            $this->db->cancelTransaction();
+            return ['success' => false, 'message' => 'Error al crear suscripción: ' . $e->getMessage()];
+        }
+    }
+
+    public function get_user_subscriptions($user_id) {
+        $this->db->query('SELECT s.*, p.monto, p.modalidad_pago 
+                         FROM suscripciones s 
+                         LEFT JOIN pagos p ON s.id_pago = p.id 
+                         WHERE s.id_usuario = :user_id 
+                         ORDER BY s.fecha_inicio DESC');
+        $this->db->bind(':user_id', $user_id);
+        return $this->db->resultset();
+    }
     // Ejercicios preestablecidos
     public function agregar_ejercicio_preestablecido($data) {
         if (!isset($_SESSION['user_tipo']) || ($_SESSION['user_tipo'] !== 'admin' && $_SESSION['user_tipo'] !== 'entrenador')) {
