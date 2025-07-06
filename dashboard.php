@@ -505,7 +505,7 @@ $historialPagos = $db->resultset();
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="pagos.php">
+                <a class="nav-link" href="../user/pagos/pagos.php">
                     <i class="fas fa-credit-card me-2"></i>
                     Pagos
                 </a>
