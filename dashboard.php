@@ -441,74 +441,95 @@ $historialPagos = $db->resultset();
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="position-sticky pt-3">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link active" href="dashboard.php">
-                        <i class="fas fa-home me-2"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <!-- Menú desplegable para Rutinas -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="rutinasDropdown">
-                        <i class="fas fa-running me-2"></i>
-                        Rutinas
-                        <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
-                    </a>
-                    <ul class="dropdown-menu" id="rutinasSubmenu">
-                        <li>
-                            <a class="dropdown-item" href="../user/rutinas/rutinas_user.php">
-                                <i class="fas fa-list me-2"></i>
-                                Ver Rutinas
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="user/rutinas/crear.php">
-                                <i class="fas fa-plus-circle me-2"></i>
-                                Crear Rutina
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-            
-            
-                <li class="nav-item">
-                    <a class="nav-link" href="nutricion.php">
-                        <i class="fas fa-apple-alt me-2"></i>
-                        Nutrición
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="progreso.php">
-                        <i class="fas fa-chart-line me-2"></i>
-                        Progreso
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="pagos.php">
-                        <i class="fas fa-credit-card me-2"></i>
-                        Pagos
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="tips.php">
-                        <i class="fas fa-lightbulb me-2"></i>
-                        Tips
-                    </a>
-                </li>
-                <?php if ($user['tipo'] == 'admin' || $user['tipo'] == 'entrenador'): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="admin.php">
-                        <i class="fas fa-users-cog me-2"></i>
-                        Administración
-                    </a>
-                </li>
-                <?php endif; ?>
-            </ul>
-        </div>
-    </nav>
+<nav class="sidebar" id="sidebar">
+    <div class="position-sticky pt-3">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="dashboard.php">
+                    <i class="fas fa-home me-2"></i>
+                    Dashboard
+                </a>
+            </li>
+
+            <!-- Menú desplegable para Rutinas -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="rutinasDropdown">
+                    <i class="fas fa-running me-2"></i>
+                    Rutinas
+                    <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
+                </a>
+                <ul class="dropdown-menu" id="rutinasSubmenu">
+                    <li>
+                        <a class="dropdown-item" href="../user/rutinas/rutinas_user.php">
+                            <i class="fas fa-list me-2"></i>
+                            Ver Rutinas
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="user/rutinas/crear.php">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Crear Rutina
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="nutricion.php">
+                    <i class="fas fa-apple-alt me-2"></i>
+                    Nutrición
+                </a>
+            </li>
+
+            <!-- Menú desplegable para Progreso -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="progresoDropdown">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Progreso
+                    <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
+                </a>
+                <ul class="dropdown-menu" id="progresoSubmenu">
+                    <li>
+                        <a class="dropdown-item" href="../user/progreso/progres.php">
+                            <i class="fas fa-eye me-2"></i>
+                            Ver Progreso
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="../user/progreso/metricas.php">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            Métricas
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="pagos.php">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Pagos
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="tips.php">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Tips
+                </a>
+            </li>
+
+            <?php if ($user['tipo'] == 'admin' || $user['tipo'] == 'entrenador'): ?>
+            <li class="nav-item">
+                <a class="nav-link" href="admin.php">
+                    <i class="fas fa-users-cog me-2"></i>
+                    Administración
+                </a>
+            </li>
+            <?php endif; ?>
+        </ul>
+    </div>
+</nav>
+
 
     <!-- Main content -->
     <main class="main-content">
@@ -771,45 +792,74 @@ $historialPagos = $db->resultset();
             }
         });
 
-        // Rutinas dropdown functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropdownToggle = document.querySelector('#rutinasDropdown');
-            const dropdownMenu = document.querySelector('#rutinasSubmenu');
-            
-            // Verificar si es dispositivo móvil
-            function isMobile() {
-                return window.innerWidth < 992;
+  // Rutinas y Progreso dropdown functionality
+document.addEventListener('DOMContentLoaded', function () {
+    const dropdowns = [
+        {
+            toggle: document.querySelector('#rutinasDropdown'),
+            menu: document.querySelector('#rutinasSubmenu')
+        },
+        {
+            toggle: document.querySelector('#progresoDropdown'),
+            menu: document.querySelector('#progresoSubmenu')
+        }
+    ];
+
+    function isMobile() {
+        return window.innerWidth < 992;
+    }
+
+    dropdowns.forEach(({ toggle, menu }) => {
+        if (!toggle || !menu) return;
+
+        // Toggle para móviles
+        function toggleMenu(e) {
+            if (isMobile()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                const isOpen = menu.classList.contains('show');
+                menu.classList.toggle('show', !isOpen);
+                toggle.classList.toggle('active', !isOpen);
+                return false;
             }
-            
-            // Función para alternar el menú
-            function toggleMenu(e) {
-                if (isMobile()) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation(); // Cambiado a stopImmediatePropagation
-                    
-                    const isOpen = dropdownMenu.classList.contains('show');
-                    
-                    // Alternar este menú
-                    dropdownMenu.classList.toggle('show', !isOpen);
-                    dropdownToggle.classList.toggle('active', !isOpen);
-                    
-                    // Detener la propagación del evento
-                    return false;
-                }
+        }
+
+        toggle.addEventListener('click', toggleMenu, true);
+
+        // Hover para escritorio
+        if (!isMobile()) {
+            toggle.addEventListener('mouseenter', function () {
+                menu.classList.add('show');
+                toggle.classList.add('active');
+            });
+
+            toggle.parentElement.addEventListener('mouseleave', function () {
+                menu.classList.remove('show');
+                toggle.classList.remove('active');
+            });
+        }
+
+        // Cerrar en resize a escritorio
+        window.addEventListener('resize', function () {
+            if (!isMobile()) {
+                menu.classList.remove('show');
+                toggle.classList.remove('active');
             }
-            
-            // Evento click para móvil
-            dropdownToggle.addEventListener('click', toggleMenu, true); // Usando capture phase
-            
-            // Cerrar menús al hacer click fuera (solo para móvil)
-            document.addEventListener('click', function(e) {
-                if (isMobile() && 
-                    !e.target.closest('.dropdown') && 
-                    !e.target.closest('.sidebar-toggle')) {
-                    dropdownMenu.classList.remove('show');
-                    dropdownToggle.classList.remove('active');
-                }
-            }, true); // Usando capture phase
+        });
+    });
+
+    // Cerrar dropdowns al hacer clic fuera (solo móviles)
+    document.addEventListener('click', function (e) {
+        if (isMobile() && 
+            !e.target.closest('.dropdown') &&
+            !e.target.closest('.sidebar-toggle')) {
+            dropdowns.forEach(({ toggle, menu }) => {
+                menu.classList.remove('show');
+                toggle.classList.remove('active');
+            });
+        }
+    }, true);
             
             // Hover para desktop
             if (!isMobile()) {

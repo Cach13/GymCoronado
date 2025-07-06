@@ -357,6 +357,8 @@ JOIN suscripciones s ON p.id = s.id_pago
 WHERE p.fecha_pago IS NOT NULL
 GROUP BY DATE_FORMAT(p.fecha_pago, '%Y-%m'), p.modalidad_pago, s.tipo_suscripcion;
 
+
+
 -- =============================================
 -- PROCEDIMIENTOS ALMACENADOS ACTUALIZADOS
 -- =============================================

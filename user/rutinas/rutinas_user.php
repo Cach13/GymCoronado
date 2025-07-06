@@ -60,7 +60,7 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="display-5">Rutinas Disponibles</h1>
-            <a href="dashboard.php" class="btn btn-outline-secondary">
+            <a href="/dashboard.php" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> Volver al Dashboard
             </a>
         </div>
