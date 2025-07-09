@@ -142,7 +142,9 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
             <!-- Sidebar -->
             <nav class="col-md-2 sidebar">
                 <div class="sidebar-sticky">
-                    <h5>Gestión</h5>
+                    <h5>  <span class="text-sm text-gray-500">
+                            Bienvenido, <?php echo $_SESSION['user_nombre']; ?>
+                        </span></h5>
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link" href="#ejercicios" data-toggle="tab">
@@ -170,10 +172,12 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
                     <!-- Sección de Ejercicios -->
                     <div class="tab-pane fade show active" id="ejercicios">
                         <div class="d-flex justify-content-between align-items-center mb-4">
+                            
                             <h2>Gestión de Ejercicios</h2>
                             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEjercicio">
                                 <i class="fas fa-plus"></i> Nuevo Ejercicio
                             </button>
+                            
                         </div>
 
                         <!-- Filtros -->

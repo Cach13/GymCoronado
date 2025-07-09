@@ -317,6 +317,11 @@ $currentUser = gym_get_logged_in_user();
                     <i class="fas fa-dumbbell"></i> Gestionar Rutinas
                 </a>
                 </button>
+                <button> 
+                <a href="admin/tips.php" class="btn btn-secondary">
+                    <i class="fas fa-dumbbell"></i> Gestionar de Tips
+                </a>
+                </button>
             </div>
         </div>
             
