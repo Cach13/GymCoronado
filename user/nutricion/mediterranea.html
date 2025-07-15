@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dieta Mediterránea Femenina - Plan Completo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #ff6b6b, #ffa726);
+            border-radius: 15px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="30" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="30" cy="70" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(-50px); }
+            100% { transform: translateX(50px); }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            transition: all 0.3s ease;
+            transform: scale(0);
+        }
+
+        .stat-card:hover::before {
+            transform: scale(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card p {
+            font-size: 1em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .benefits {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+
+        .benefits h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .benefits ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .benefits li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .benefits li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .meal-plan {
+            display: grid;
+            gap: 30px;
+        }
+
+        .day-section {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 25px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .day-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+            animation: rainbow 3s infinite;
+        }
+
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .day-section h3 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .meals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .meal-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .meal-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .meal-card h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .meal-icon {
+            font-size: 1.5em;
+        }
+
+        .meal-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .meal-card li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-card li:last-child {
+            border-bottom: none;
+        }
+
+        .portion {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .calories-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        .tips-section {
+            background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 40px;
+        }
+
+        .tips-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .tip-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #4ecdc4;
+        }
+
+        .tip-card h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .tip-card p {
+            color: #5a6c7d;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .meals-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍇 Dieta Mediterránea Femenina</h1>
+            <p>Plan balanceado basado en alimentos frescos del mediterráneo para pérdida de peso gradual y sostenible</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>1400</h3>
+                <p>Calorías diarias</p>
+            </div>
+            <div class="stat-card">
+                <h3>105g</h3>
+                <p>Proteínas</p>
+            </div>
+            <div class="stat-card">
+                <h3>140g</h3>
+                <p>Carbohidratos</p>
+            </div>
+            <div class="stat-card">
+                <h3>47g</h3>
+                <p>Grasas</p>
+            </div>
+            <div class="stat-card">
+                <h3>5</h3>
+                <p>Comidas al día</p>
+            </div>
+            <div class="stat-card">
+                <h3>8-12</h3>
+                <p>Semanas sugeridas</p>
+            </div>
+        </div>
+
+        <div class="benefits">
+            <h3>🌟 Beneficios de esta dieta</h3>
+            <ul>
+                <li>Pérdida de peso gradual y sostenible</li>
+                <li>Mejora cardiovascular significativa</li>
+                <li>Rico en antioxidantes naturales</li>
+                <li>Reduce la inflamación</li>
+                <li>Mejora la salud mental</li>
+            </ul>
+        </div>
+
+        <div class="meal-plan">
+            <div class="day-section">
+                <h3>📅 Plan de Comidas Diario</h3>
+                <div class="meals-grid">
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🌅</span>Desayuno</h4>
+                        <ul>
+                            <li>Yogur griego natural <span class="portion">150g</span></li>
+                            <li>Nueces <span class="portion">15g</span></li>
+                            <li>Miel <span class="portion">1 cucharada</span></li>
+                            <li>Arándanos frescos <span class="portion">80g</span></li>
+                            <li>Té verde <span class="portion">1 taza</span></li>
+                        </ul>
+                        <span class="calories-badge">280 kcal</span>
+                    </div>
+
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🥗</span>Media Mañana</h4>
+                        <ul>
+                            <li>Manzana mediana <span class="portion">150g</span></li>
+                            <li>Almendras <span class="portion">10 unidades</span></li>
+                            <li>Agua con limón <span class="portion">1 vaso</span></li>
+                        </ul>
+                        <span class="calories-badge">150 kcal</span>
+                    </div>
+
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🍽️</span>Almuerzo</h4>
+                        <ul>
+                            <li>Salmón a la plancha <span class="portion">120g</span></li>
+                            <li>Ensalada mixta <span class="portion">200g</span></li>
+                            <li>Aceite de oliva virgen <span class="portion">1 cucharada</span></li>
+                            <li>Quinoa cocida <span class="portion">80g</span></li>
+                            <li>Tomates cherry <span class="portion">100g</span></li>
+                            <li>Pepino <span class="portion">80g</span></li>
+                        </ul>
+                        <span class="calories-badge">520 kcal</span>
+                    </div>
+
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🥨</span>Merienda</h4>
+                        <ul>
+                            <li>Hummus casero <span class="portion">60g</span></li>
+                            <li>Zanahorias baby <span class="portion">100g</span></li>
+                            <li>Apio <span class="portion">50g</span></li>
+                            <li>Infusión de manzanilla <span class="portion">1 taza</span></li>
+                        </ul>
+                        <span class="calories-badge">140 kcal</span>
+                    </div>
+
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🌙</span>Cena</h4>
+                        <ul>
+                            <li>Pechuga de pollo <span class="portion">100g</span></li>
+                            <li>Verduras mediterráneas <span class="portion">200g</span></li>
+                            <li>Berenjena, calabacín, pimiento <span class="portion">c/u 60g</span></li>
+                            <li>Arroz integral <span class="portion">60g crudo</span></li>
+                            <li>Hierbas frescas <span class="portion">al gusto</span></li>
+                        </ul>
+                        <span class="calories-badge">310 kcal</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-section">
+                <h3>🔄 Alternativas por Semana</h3>
+                <div class="meals-grid">
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🐟</span>Proteínas (Alternar)</h4>
+                        <ul>
+                            <li>Lunes: Salmón <span class="portion">120g</span></li>
+                            <li>Martes: Pollo <span class="portion">100g</span></li>
+                            <li>Miércoles: Atún <span class="portion">120g</span></li>
+                            <li>Jueves: Huevos <span class="portion">2 unidades</span></li>
+                            <li>Viernes: Pescado blanco <span class="portion">120g</span></li>
+                            <li>Sábado: Legumbres <span class="portion">80g</span></li>
+                            <li>Domingo: Pollo <span class="portion">100g</span></li>
+                        </ul>
+                        <span class="calories-badge">Variable</span>
+                    </div>
+
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🥬</span>Ensaladas Base</h4>
+                        <ul>
+                            <li>Espinacas frescas <span class="portion">100g</span></li>
+                            <li>Rúcula <span class="portion">50g</span></li>
+                            <li>Lechuga romana <span class="portion">80g</span></li>
+                            <li>Tomate <span class="portion">100g</span></li>
+                            <li>Pepino <span class="portion">80g</span></li>
+                            <li>Cebolla roja <span class="portion">30g</span></li>
+                        </ul>
+                        <span class="calories-badge">60 kcal</span>
+                    </div>
+
+                    <div class="meal-card">
+                        <h4><span class="meal-icon">🥖</span>Carbohidratos</h4>
+                        <ul>
+                            <li>Quinoa cocida <span class="portion">80g</span></li>
+                            <li>Arroz integral <span class="portion">60g crudo</span></li>
+                            <li>Pan integral <span class="portion">40g</span></li>
+                            <li>Avena <span class="portion">40g</span></li>
+                            <li>Pasta integral <span class="portion">50g crudo</span></li>
+                            <li>Batata <span class="portion">120g</span></li>
+                        </ul>
+                        <span class="calories-badge">Variable</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tips-section">
+            <h3>💡 Consejos Importantes</h3>
+            <div class="tips-grid">
+                <div class="tip-card">
+                    <h4>💧 Hidratación</h4>
+                    <p>Bebe al menos 8 vasos de agua al día. Puedes incluir infusiones sin azúcar y agua con limón.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>🍳 Preparación</h4>
+                    <p>Cocina con métodos saludables: plancha, vapor, horno. Evita frituras y usa aceite de oliva con moderación.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>⏰ Horarios</h4>
+                    <p>Mantén horarios regulares de comida. Desayuna dentro de la primera hora después de despertar.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>🚶‍♀️ Ejercicio</h4>
+                    <p>Complementa con 30 minutos de actividad física diaria. Caminar es suficiente para empezar.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>📏 Porciones</h4>
+                    <p>Usa platos más pequeños y come despacio. Mastica bien y disfruta cada bocado.</p>
+                </div>
+                <div class="tip-card">
+                    <h4>🛒 Compras</h4>
+                    <p>Planifica tus compras. Elige productos frescos, de temporada y evita procesados.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

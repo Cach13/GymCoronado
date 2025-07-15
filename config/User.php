@@ -96,14 +96,15 @@ class User {
 
     // Obtener suscripción activa (nuevo método)
     public function get_active_subscription($user_id) {
-        $this->db->query("SELECT s.*, p.modalidad_pago 
-                         FROM suscripciones s 
-                         LEFT JOIN pagos p ON s.id_pago = p.id 
-                         WHERE s.id_usuario = :user_id AND s.estado = 'activa'
-                         ORDER BY s.fecha_fin DESC LIMIT 1");
+        $this->db->query("SELECT s.*, cp.codigo, cp.tipo_plan 
+                        FROM suscripciones s
+                        LEFT JOIN codigos_planes cp ON s.id_codigo_plan = cp.id
+                        WHERE s.id_usuario = :user_id AND s.estado = 'activa'
+                        ORDER BY s.fecha_fin DESC LIMIT 1");
         $this->db->bind(':user_id', $user_id);
         return $this->db->single();
     }
+
 
     // Obtener usuario por ID
     public function get_user_by_id($id) {
@@ -280,66 +281,42 @@ class User {
     }
 
     // Métodos de suscripción (nuevos)
-    public function create_subscription($user_id, $subscription_data) {
-        $this->db->beginTransaction();
-        
+    public function activate_subscription_with_code($user_id, $codigo, $activada_por) {
         try {
-            // Registrar el pago
-            $this->db->query('INSERT INTO pagos 
-                            (id_usuario, monto, modalidad_pago, fecha_pago, referencia_pago, registrado_por) 
-                            VALUES (:user_id, :monto, :modalidad, :fecha_pago, :referencia, :registrado_por)');
-            
+            // Llamar al procedimiento almacenado
+            $this->db->query("CALL ActivarSuscripcionConCodigo(:user_id, :codigo, :activada_por)");
             $this->db->bind(':user_id', $user_id);
-            $this->db->bind(':monto', $subscription_data['monto']);
-            $this->db->bind(':modalidad', $subscription_data['modalidad_pago']);
-            $this->db->bind(':fecha_pago', date('Y-m-d'));
-            $this->db->bind(':referencia', $subscription_data['referencia_pago'] ?? null);
-            $this->db->bind(':registrado_por', $_SESSION['user_id']);
-            
-            $this->db->execute();
-            $payment_id = $this->db->lastInsertId();
-            
-            // Crear la suscripción
-            $this->db->query('INSERT INTO suscripciones 
-                            (id_usuario, id_pago, tipo_suscripcion, fecha_inicio, fecha_fin, estado) 
-                            VALUES (:user_id, :payment_id, :tipo, :inicio, :fin, :estado)');
-            
-            $this->db->bind(':user_id', $user_id);
-            $this->db->bind(':payment_id', $payment_id);
-            $this->db->bind(':tipo', $subscription_data['tipo_suscripcion']);
-            $this->db->bind(':inicio', $subscription_data['fecha_inicio']);
-            $this->db->bind(':fin', $subscription_data['fecha_fin']);
-            $this->db->bind(':estado', 'activa');
-            
-            $this->db->execute();
-            
-            $this->db->endTransaction();
-            
-            // Actualizar datos en sesión si es el usuario actual
-            if ($user_id == $_SESSION['user_id']) {
-                $_SESSION['user_tipo_suscripcion'] = $subscription_data['tipo_suscripcion'];
-                $_SESSION['user_fecha_fin_suscripcion'] = $subscription_data['fecha_fin'];
-                $_SESSION['user_estado_suscripcion'] = 'activa';
-                $_SESSION['user_modalidad_pago'] = $subscription_data['modalidad_pago'];
-            }
-            
-            return ['success' => true, 'message' => 'Suscripción creada exitosamente'];
-            
-        } catch (Exception $e) {
-            $this->db->cancelTransaction();
-            return ['success' => false, 'message' => 'Error al crear suscripción: ' . $e->getMessage()];
+            $this->db->bind(':codigo', $codigo);
+            $this->db->bind(':activada_por', $activada_por);
+
+            $result = $this->db->single(); // El procedimiento retorna un solo resultado
+            return [
+                'success' => true,
+                'mensaje' => $result['mensaje'],
+                'tipo_plan' => $result['tipo_plan'],
+                'fecha_inicio' => $result['fecha_inicio'],
+                'fecha_fin' => $result['fecha_fin'],
+                'dias_agregados' => $result['dias_agregados']
+            ];
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'mensaje' => 'Error al activar la suscripción: ' . $e->getMessage()
+            ];
         }
     }
 
-    public function get_user_subscriptions($user_id) {
-        $this->db->query('SELECT s.*, p.monto, p.modalidad_pago 
-                         FROM suscripciones s 
-                         LEFT JOIN pagos p ON s.id_pago = p.id 
-                         WHERE s.id_usuario = :user_id 
-                         ORDER BY s.fecha_inicio DESC');
+
+        public function get_user_subscriptions($user_id) {
+        $this->db->query('SELECT s.*, cp.codigo, cp.tipo_plan 
+                        FROM suscripciones s
+                        LEFT JOIN codigos_planes cp ON s.id_codigo_plan = cp.id
+                        WHERE s.id_usuario = :user_id 
+                        ORDER BY s.fecha_inicio DESC');
         $this->db->bind(':user_id', $user_id);
         return $this->db->resultset();
     }
+
     // Ejercicios preestablecidos
     public function agregar_ejercicio_preestablecido($data) {
         if (!isset($_SESSION['user_tipo']) || ($_SESSION['user_tipo'] !== 'admin' && $_SESSION['user_tipo'] !== 'entrenador')) {

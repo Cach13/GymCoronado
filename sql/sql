@@ -1,8 +1,8 @@
--- Base de datos para Gym App con Sistema de Suscripciones
+-- Base de datos para Gym App con Sistema de Códigos de Planes
 CREATE DATABASE IF NOT EXISTS gym_app;
 USE gym_app;
 
--- Tabla de usuarios simplificada
+-- Tabla de usuarios (sin cambios)
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     INDEX idx_acceso (activo, puede_acceder)
 );
 
--- Tabla de historial de acceso
+-- Tabla de historial de acceso (sin cambios)
 CREATE TABLE IF NOT EXISTS historial_acceso (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -33,55 +33,44 @@ CREATE TABLE IF NOT EXISTS historial_acceso (
     FOREIGN KEY (id_administrador) REFERENCES usuarios(id)
 );
 
--- Tabla de precios de suscripciones
-CREATE TABLE precios_suscripciones (
+-- NUEVA TABLA: Códigos de planes
+CREATE TABLE IF NOT EXISTS codigos_planes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual') NOT NULL,
-    precio DECIMAL(10,2) NOT NULL,
-    descuento_porcentaje DECIMAL(5,2) DEFAULT 0,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_inicio_vigencia DATE NOT NULL,
-    fecha_fin_vigencia DATE,
-    descripcion TEXT,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_tipo_vigencia (tipo_suscripcion, fecha_inicio_vigencia),
-    INDEX idx_tipo_activo (tipo_suscripcion, activo)
-);
-
--- Tabla de pagos (simplificada)
-CREATE TABLE IF NOT EXISTS pagos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    monto DECIMAL(10,2) NOT NULL,
-    modalidad_pago ENUM('efectivo', 'transferencia', 'tarjeta', 'otro') NOT NULL,
-    fecha_pago DATE NOT NULL,
-    referencia_pago VARCHAR(100),
+    codigo VARCHAR(20) UNIQUE NOT NULL,
+    tipo_plan ENUM('semanal', 'mensual') NOT NULL,
+    usado BOOLEAN DEFAULT FALSE,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_uso DATETIME NULL,
+    usado_por INT NULL,
+    creado_por INT NOT NULL,
     notas TEXT,
-    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    registrado_por INT,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
-    FOREIGN KEY (registrado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
-    INDEX idx_usuario_fecha (id_usuario, fecha_pago),
-    INDEX idx_modalidad_pago (modalidad_pago)
+    FOREIGN KEY (usado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
+    FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_codigo (codigo),
+    INDEX idx_tipo_usado (tipo_plan, usado),
+    INDEX idx_fecha_creacion (fecha_creacion)
 );
 
--- Tabla de suscripciones (nueva estructura)
+-- Tabla de suscripciones (MODIFICADA para trabajar con códigos)
 CREATE TABLE IF NOT EXISTS suscripciones (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
-    id_pago INT,
-    tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual') NOT NULL,
+    id_codigo_plan INT NULL,
+    tipo_suscripcion ENUM('semanal', 'mensual') NOT NULL,
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE NOT NULL,
     estado ENUM('activa', 'vencida', 'cancelada', 'suspendida') DEFAULT 'activa',
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activada_por INT,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_pago) REFERENCES pagos(id) ON DELETE SET NULL,
+    FOREIGN KEY (id_codigo_plan) REFERENCES codigos_planes(id) ON DELETE SET NULL,
+    FOREIGN KEY (activada_por) REFERENCES usuarios(id) ON DELETE SET NULL,
     INDEX idx_usuario_estado (id_usuario, estado),
-    INDEX idx_fecha_fin (fecha_fin)
+    INDEX idx_fecha_fin (fecha_fin),
+    INDEX idx_codigo_plan (id_codigo_plan)
 );
 
--- Tabla de medidas corporales
+-- Tabla de medidas corporales (sin cambios)
 CREATE TABLE medidas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -103,7 +92,7 @@ CREATE TABLE medidas (
     INDEX idx_usuario_fecha (id_usuario, fecha_medicion)
 );
 
--- Tabla de rachas de asistencia
+-- Tabla de rachas de asistencia (sin cambios)
 CREATE TABLE rachas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -115,7 +104,7 @@ CREATE TABLE rachas (
     INDEX idx_usuario_activa (id_usuario, activa)
 );
 
--- Tabla de rutinas
+-- Tabla de rutinas (sin cambios)
 CREATE TABLE rutinas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_entrenador INT NOT NULL,
@@ -132,7 +121,7 @@ CREATE TABLE rutinas (
     INDEX idx_categoria_objetivo (categoria, objetivo)
 );
 
--- Tabla de tips diarios
+-- Tabla de tips diarios (sin cambios)
 CREATE TABLE tips (
     id INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(200) NOT NULL,
@@ -145,7 +134,7 @@ CREATE TABLE tips (
     INDEX idx_categoria_activo (categoria, activo)
 );
 
--- Tabla de registro de comidas
+-- Tabla de registro de comidas (sin cambios)
 CREATE TABLE registro_comidas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -167,7 +156,7 @@ CREATE TABLE registro_comidas (
     INDEX idx_api_food (api_food_id, api_nombre)
 );
 
--- Tabla de objetivos nutricionales
+-- Tabla de objetivos nutricionales (sin cambios)
 CREATE TABLE objetivos_nutricionales (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -182,33 +171,19 @@ CREATE TABLE objetivos_nutricionales (
     INDEX idx_usuario_activo (id_usuario, activo)
 );
 
--- Tabla de promociones
-CREATE TABLE promociones (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titulo VARCHAR(200) NOT NULL,
-    descripcion TEXT NOT NULL,
-    descuento_porcentaje DECIMAL(5,2),
-    descuento_cantidad DECIMAL(10,2),
-    fecha_inicio DATE NOT NULL,
-    fecha_fin DATE NOT NULL,
-    activa BOOLEAN DEFAULT TRUE,
-    codigo_promocional VARCHAR(50) UNIQUE,
-    aplicable_a ENUM('todos', 'nuevos', 'renovaciones') DEFAULT 'todos',
-    INDEX idx_fechas_activa (fecha_inicio, fecha_fin, activa)
-);
-
--- Tabla de estadísticas
+-- Tabla de estadísticas (sin cambios)
 CREATE TABLE estadisticas_gym (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fecha DATE NOT NULL,
     total_asistencias INT DEFAULT 0,
     nuevos_registros INT DEFAULT 0,
     rutinas_completadas INT DEFAULT 0,
-    ingresos_dia DECIMAL(10,2) DEFAULT 0,
+    codigos_generados INT DEFAULT 0,
+    codigos_usados INT DEFAULT 0,
     UNIQUE KEY unique_fecha (fecha)
 );
 
--- Tabla de alimentos favoritos
+-- Tabla de alimentos favoritos (sin cambios)
 CREATE TABLE alimentos_favoritos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -229,7 +204,7 @@ CREATE TABLE alimentos_favoritos (
     INDEX idx_api_food (api_food_id, api_nombre)
 );
 
--- Tabla de caché de API
+-- Tabla de caché de API (sin cambios)
 CREATE TABLE cache_api_alimentos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     termino_busqueda VARCHAR(200) NOT NULL,
@@ -241,7 +216,7 @@ CREATE TABLE cache_api_alimentos (
     INDEX idx_expiracion (expira_en)
 );
 
--- Tabla de rutinas asignadas
+-- Tabla de rutinas asignadas (sin cambios)
 CREATE TABLE IF NOT EXISTS usuario_rutinas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -253,7 +228,7 @@ CREATE TABLE IF NOT EXISTS usuario_rutinas (
     UNIQUE KEY unique_usuario_rutina (id_usuario, id_rutina)
 );
 
--- Tabla de ejercicios preestablecidos
+-- Tabla de ejercicios preestablecidos (sin cambios)
 CREATE TABLE IF NOT EXISTS ejercicios_preestablecidos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
@@ -271,28 +246,12 @@ CREATE TABLE IF NOT EXISTS ejercicios_preestablecidos (
     INDEX idx_grupo_muscular (grupo_muscular),
     INDEX idx_dificultad (dificultad)
 );
--- Verificar si la tabla existe y tiene las columnas necesarias
-DESCRIBE rutinas;
 
--- Si necesitas crear la tabla:
-CREATE TABLE IF NOT EXISTS rutinas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_entrenador INT NOT NULL,
-    titulo VARCHAR(255) NOT NULL,
-    descripcion TEXT,
-    categoria VARCHAR(100) NOT NULL,
-    objetivo VARCHAR(100) NOT NULL,
-    duracion_minutos INT DEFAULT 60,
-    ejercicios JSON,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_entrenador) REFERENCES usuarios(id)
-);
-
--- =============================================
+-- =============================================cod
 -- VISTAS ACTUALIZADAS
 -- =============================================
 
--- Vista para calcular días restantes de suscripción (actualizada)
+-- Vista para mostrar suscripciones con códigos
 CREATE VIEW vista_suscripciones AS
 SELECT 
     u.id,
@@ -306,7 +265,9 @@ SELECT
     s.fecha_inicio,
     s.fecha_fin,
     s.estado,
-    p.modalidad_pago,
+    cp.codigo,
+    cp.fecha_creacion as fecha_codigo_creado,
+    cp.fecha_uso as fecha_codigo_usado,
     CASE 
         WHEN s.fecha_fin IS NULL THEN NULL
         WHEN s.fecha_fin < CURDATE() THEN 0
@@ -315,15 +276,13 @@ SELECT
     CASE 
         WHEN s.fecha_fin IS NULL THEN 'Sin suscripción'
         WHEN s.fecha_fin < CURDATE() THEN 'Vencida'
-        WHEN DATEDIFF(s.fecha_fin, CURDATE()) <= 7 THEN 'Por vencer'
-        WHEN DATEDIFF(s.fecha_fin, CURDATE()) <= 15 THEN 'Próximo a vencer'
+        WHEN DATEDIFF(s.fecha_fin, CURDATE()) <= 3 THEN 'Por vencer'
+        WHEN DATEDIFF(s.fecha_fin, CURDATE()) <= 7 THEN 'Próximo a vencer'
         ELSE 'Activa'
-    END as estado_suscripcion_calculado,
-    p.fecha_pago as ultimo_pago,
-    p.monto as monto_ultimo_pago
+    END as estado_suscripcion_calculado
 FROM usuarios u
 LEFT JOIN suscripciones s ON u.id = s.id_usuario AND s.estado = 'activa'
-LEFT JOIN pagos p ON s.id_pago = p.id
+LEFT JOIN codigos_planes cp ON s.id_codigo_plan = cp.id
 WHERE u.tipo = 'cliente';
 
 -- Vista de progreso de usuarios (actualizada)
@@ -336,56 +295,158 @@ SELECT
     MAX(r.fecha) as ultima_asistencia,
     DATEDIFF(CURDATE(), MAX(r.fecha)) as dias_sin_ir,
     vs.estado_suscripcion_calculado,
-    vs.dias_restantes
+    vs.dias_restantes,
+    vs.tipo_suscripcion
 FROM usuarios u
 LEFT JOIN rachas r ON u.id = r.id_usuario AND r.activa = TRUE
 LEFT JOIN vista_suscripciones vs ON u.id = vs.id
 WHERE u.tipo = 'cliente'
-GROUP BY u.id, u.nombre, u.apellido, vs.estado_suscripcion_calculado, vs.dias_restantes;
+GROUP BY u.id, u.nombre, u.apellido, vs.estado_suscripcion_calculado, vs.dias_restantes, vs.tipo_suscripcion;
 
--- Vista de estadísticas de pagos (actualizada)
-CREATE VIEW vista_estadisticas_pagos AS
+-- Vista de códigos disponibles
+CREATE VIEW vista_codigos_disponibles AS
 SELECT 
-    DATE_FORMAT(p.fecha_pago, '%Y-%m') as mes,
-    COUNT(*) as total_pagos,
-    SUM(p.monto) as ingresos_totales,
-    AVG(p.monto) as promedio_pago,
-    p.modalidad_pago,
-    s.tipo_suscripcion
-FROM pagos p
-JOIN suscripciones s ON p.id = s.id_pago
-WHERE p.fecha_pago IS NOT NULL
-GROUP BY DATE_FORMAT(p.fecha_pago, '%Y-%m'), p.modalidad_pago, s.tipo_suscripcion;
+    cp.id,
+    cp.codigo,
+    cp.tipo_plan,
+    cp.usado,
+    cp.fecha_creacion,
+    cp.fecha_uso,
+    cp.usado_por,
+    cp.notas,
+    u_creador.nombre as creado_por_nombre,
+    u_usado.nombre as usado_por_nombre,
+    CASE 
+        WHEN cp.usado = FALSE THEN 'Disponible'
+        ELSE 'Usado'
+    END as estado_codigo
+FROM codigos_planes cp
+JOIN usuarios u_creador ON cp.creado_por = u_creador.id
+LEFT JOIN usuarios u_usado ON cp.usado_por = u_usado.id
+ORDER BY cp.fecha_creacion DESC;
 
-
+-- Vista de estadísticas de códigos
+CREATE VIEW vista_estadisticas_codigos AS
+SELECT 
+    cp.tipo_plan,
+    COUNT(*) as total_generados,
+    SUM(CASE WHEN cp.usado = TRUE THEN 1 ELSE 0 END) as total_usados,
+    SUM(CASE WHEN cp.usado = FALSE THEN 1 ELSE 0 END) as total_disponibles,
+    ROUND((SUM(CASE WHEN cp.usado = TRUE THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as porcentaje_uso
+FROM codigos_planes cp
+GROUP BY cp.tipo_plan;
 
 -- =============================================
--- PROCEDIMIENTOS ALMACENADOS ACTUALIZADOS
+-- FUNCIONES Y PROCEDIMIENTOS ALMACENADOS
 -- =============================================
 
--- Procedimiento para renovar suscripción (actualizado)
+-- Función para generar código único
 DELIMITER //
-CREATE PROCEDURE RenovarSuscripcion(
-    IN p_id_usuario INT,
-    IN p_tipo_suscripcion ENUM('semanal', 'mensual', 'trimestral', 'semestral', 'anual'),
-    IN p_modalidad_pago ENUM('efectivo', 'transferencia', 'tarjeta', 'otro'),
-    IN p_monto DECIMAL(10,2),
-    IN p_referencia_pago VARCHAR(100),
-    IN p_registrado_por INT
+CREATE FUNCTION GenerarCodigoUnico(prefijo VARCHAR(5)) 
+RETURNS VARCHAR(20)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE codigo_generado VARCHAR(20);
+    DECLARE codigo_existe INT DEFAULT 1;
+    DECLARE contador INT DEFAULT 0;
+    
+    WHILE codigo_existe > 0 AND contador < 100 DO
+        SET codigo_generado = CONCAT(prefijo, '-', 
+            SUBSTRING(MD5(RAND()), 1, 6));
+        
+        SELECT COUNT(*) INTO codigo_existe 
+        FROM codigos_planes 
+        WHERE codigo = codigo_generado;
+        
+        SET contador = contador + 1;
+    END WHILE;
+    
+    RETURN UPPER(codigo_generado);
+END//
+DELIMITER ;
+
+-- Procedimiento para generar código de plan
+DELIMITER //
+CREATE PROCEDURE GenerarCodigoPlan(
+    IN p_tipo_plan ENUM('semanal', 'mensual'),
+    IN p_creado_por INT,
+    IN p_notas TEXT
 )
 BEGIN
+    DECLARE v_codigo VARCHAR(20);
+    DECLARE v_prefijo VARCHAR(5);
+    
+    -- Determinar prefijo según tipo de plan
+    CASE p_tipo_plan
+        WHEN 'semanal' THEN SET v_prefijo = 'SEM';
+        WHEN 'mensual' THEN SET v_prefijo = 'MEN';
+    END CASE;
+    
+    -- Generar código único
+    SET v_codigo = GenerarCodigoUnico(v_prefijo);
+    
+    -- Insertar código en la base de datos
+    INSERT INTO codigos_planes (
+        codigo, tipo_plan, creado_por, notas
+    ) VALUES (
+        v_codigo, p_tipo_plan, p_creado_por, p_notas
+    );
+    
+    -- Actualizar estadísticas
+    INSERT INTO estadisticas_gym (fecha, codigos_generados) 
+    VALUES (CURDATE(), 1)
+    ON DUPLICATE KEY UPDATE 
+        codigos_generados = codigos_generados + 1;
+    
+    -- Retornar el código generado
+    SELECT v_codigo as codigo_generado;
+END//
+DELIMITER ;
+
+-- Procedimiento para activar suscripción con código
+DELIMITER //
+CREATE PROCEDURE ActivarSuscripcionConCodigo(
+    IN p_id_usuario INT,
+    IN p_codigo VARCHAR(20),
+    IN p_activada_por INT
+)
+BEGIN
+    DECLARE v_id_codigo INT;
+    DECLARE v_tipo_plan ENUM('semanal', 'mensual');
+    DECLARE v_codigo_usado BOOLEAN DEFAULT FALSE;
     DECLARE v_fecha_inicio DATE;
     DECLARE v_fecha_fin DATE;
     DECLARE v_dias_agregar INT;
-    DECLARE v_id_pago INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
     
-    -- Determinar días a agregar según tipo de suscripción
-    CASE p_tipo_suscripcion
+    START TRANSACTION;
+    
+    -- Verificar que el código existe y no está usado
+    SELECT id, tipo_plan, usado 
+    INTO v_id_codigo, v_tipo_plan, v_codigo_usado
+    FROM codigos_planes 
+    WHERE codigo = p_codigo;
+    
+    -- Validaciones
+    IF v_id_codigo IS NULL THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'El código no existe';
+    END IF;
+    
+    IF v_codigo_usado = TRUE THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'El código ya fue usado';
+    END IF;
+    
+    -- Determinar días a agregar
+    CASE v_tipo_plan
         WHEN 'semanal' THEN SET v_dias_agregar = 7;
         WHEN 'mensual' THEN SET v_dias_agregar = 30;
-        WHEN 'trimestral' THEN SET v_dias_agregar = 90;
-        WHEN 'semestral' THEN SET v_dias_agregar = 180;
-        WHEN 'anual' THEN SET v_dias_agregar = 365;
     END CASE;
     
     -- Determinar fecha de inicio (hoy o fecha de vencimiento si aún está activa)
@@ -396,33 +457,45 @@ BEGIN
     
     SET v_fecha_fin = DATE_ADD(v_fecha_inicio, INTERVAL v_dias_agregar DAY);
     
-    -- Registrar pago primero
-    INSERT INTO pagos (
-        id_usuario, monto, modalidad_pago,
-        fecha_pago, referencia_pago, registrado_por
-    ) VALUES (
-        p_id_usuario, p_monto, p_modalidad_pago,
-        CURDATE(), p_referencia_pago, p_registrado_por
-    );
-    
-    SET v_id_pago = LAST_INSERT_ID();
+    -- Marcar código como usado
+    UPDATE codigos_planes SET 
+        usado = TRUE,
+        fecha_uso = NOW(),
+        usado_por = p_id_usuario
+    WHERE id = v_id_codigo;
     
     -- Crear nueva suscripción
     INSERT INTO suscripciones (
-        id_usuario, id_pago, tipo_suscripcion,
-        fecha_inicio, fecha_fin, estado
+        id_usuario, id_codigo_plan, tipo_suscripcion,
+        fecha_inicio, fecha_fin, estado, activada_por
     ) VALUES (
-        p_id_usuario, v_id_pago, p_tipo_suscripcion,
-        v_fecha_inicio, v_fecha_fin, 'activa'
+        p_id_usuario, v_id_codigo, v_tipo_plan,
+        v_fecha_inicio, v_fecha_fin, 'activa', p_activada_por
     );
     
     -- Marcar suscripciones anteriores como vencidas
     UPDATE suscripciones SET estado = 'vencida'
     WHERE id_usuario = p_id_usuario AND estado = 'activa' AND id != LAST_INSERT_ID();
+    
+    -- Actualizar estadísticas
+    INSERT INTO estadisticas_gym (fecha, codigos_usados) 
+    VALUES (CURDATE(), 1)
+    ON DUPLICATE KEY UPDATE 
+        codigos_usados = codigos_usados + 1;
+    
+    COMMIT;
+    
+    -- Retornar información de la suscripción creada
+    SELECT 
+        'Suscripción activada exitosamente' as mensaje,
+        v_tipo_plan as tipo_plan,
+        v_fecha_inicio as fecha_inicio,
+        v_fecha_fin as fecha_fin,
+        v_dias_agregar as dias_agregados;
 END//
 DELIMITER ;
 
--- Procedimiento para actualizar estados de suscripciones vencidas (actualizado)
+-- Procedimiento para actualizar estados de suscripciones vencidas
 DELIMITER //
 CREATE PROCEDURE ActualizarEstadosSuscripciones()
 BEGIN
@@ -434,16 +507,8 @@ END//
 DELIMITER ;
 
 -- =============================================
--- DATOS INICIALES ACTUALIZADOS
+-- DATOS INICIALES
 -- =============================================
-
--- Insertar precios de suscripciones
-INSERT INTO precios_suscripciones (tipo_suscripcion, precio, fecha_inicio_vigencia, descripcion) VALUES 
-('semanal', 150.00, '2024-01-01', 'Suscripción semanal - Acceso completo al gimnasio'),
-('mensual', 500.00, '2024-01-01', 'Suscripción mensual - Acceso completo + 1 clase grupal'),
-('trimestral', 1350.00, '2024-01-01', 'Suscripción trimestral - 10% descuento + 2 clases grupales'),
-('semestral', 2400.00, '2024-01-01', 'Suscripción semestral - 20% descuento + clases grupales ilimitadas'),
-('anual', 4200.00, '2024-01-01', 'Suscripción anual - 30% descuento + entrenador personal');
 
 -- Insertar usuario admin por defecto
 INSERT INTO usuarios (email, password, nombre, apellido, tipo) 
@@ -463,6 +528,27 @@ INSERT INTO usuarios (email, password, nombre, apellido, tipo) VALUES
 ('cliente2@gym.com', '$2y$10$ejemplo_hash', 'María', 'González', 'cliente'),
 ('entrenador1@gym.com', '$2y$10$ejemplo_hash', 'Luis', 'Martínez', 'entrenador');
 
--- Insertar pagos y suscripciones de prueba
-CALL RenovarSuscripcion(2, 'mensual', 'efectivo', 500.00, 'REC-001', 1);
-CALL RenovarSuscripcion(3, 'trimestral', 'transferencia', 1350.00, 'TRANS-001', 1);
+-- Generar algunos códigos de ejemplo
+CALL GenerarCodigoPlan('semanal', 1, 'Código de prueba semanal');
+CALL GenerarCodigoPlan('mensual', 1, 'Código de prueba mensual');
+CALL GenerarCodigoPlan('semanal', 1, 'Código de prueba semanal 2');
+
+-- =============================================
+-- ÍNDICES ADICIONALES PARA RENDIMIENTO
+-- =============================================
+
+-- Índices para mejorar consultas frecuentes
+CREATE INDEX idx_suscripciones_usuario_activa ON suscripciones(id_usuario, estado, fecha_fin);
+CREATE INDEX idx_codigos_tipo_usado ON codigos_planes(tipo_plan, usado, fecha_creacion);
+CREATE INDEX idx_usuarios_tipo_activo ON usuarios(tipo, activo);
+
+-- =============================================
+-- EVENTOS AUTOMÁTICOS
+-- =============================================
+
+-- Evento para actualizar estados de suscripciones diariamente
+CREATE EVENT IF NOT EXISTS actualizar_suscripciones_vencidas
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_TIMESTAMP
+DO
+CALL ActualizarEstadosSuscripciones();

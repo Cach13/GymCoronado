@@ -15,7 +15,7 @@ $userObj = new User();
 // Obtener estadísticas del usuario
 $userStats = $userObj->get_user_stats($user['id']);
 
-// Obtener suscripción activa del usuario
+// Obtener suscripción activa del usuario (puede venir de código o pago)
 $subscription = $userObj->get_active_subscription($user['id']);
 
 // Calcular días restantes de membresía
@@ -26,20 +26,20 @@ if ($subscription) {
     $fechaVencimiento = new DateTime($subscription['fecha_fin']);
     $fechaActual = new DateTime();
     $diferencia = $fechaActual->diff($fechaVencimiento);
-    
+
     if ($fechaVencimiento > $fechaActual) {
         $diasRestantes = $diferencia->days;
         $estadoMembresia = 'Activa';
     } else {
-        $diasRestantes = -$diferencia->days; // Negativo si ya venció
+        $diasRestantes = -$diferencia->days;
         $estadoMembresia = 'Vencida';
     }
-    
-    // Actualizar datos en sesión para consistencia
-    $_SESSION['user_tipo_suscripcion'] = $subscription['tipo_suscripcion'];
-    $_SESSION['user_fecha_fin_suscripcion'] = $subscription['fecha_fin'];
-    $_SESSION['user_estado_suscripcion'] = $subscription['estado'];
-    $_SESSION['user_modalidad_pago'] = $subscription['modalidad_pago'];
+
+    // Actualizar sesión (si la suscripción vino de código, no hay modalidad_pago)
+    $_SESSION['user_tipo_suscripcion'] = $subscription['tipo_suscripcion'] ?? 'N/A';
+    $_SESSION['user_fecha_fin_suscripcion'] = $subscription['fecha_fin'] ?? 'N/A';
+    $_SESSION['user_estado_suscripcion'] = $subscription['estado'] ?? $estadoMembresia;
+    $_SESSION['user_modalidad_pago'] = $subscription['modalidad_pago'] ?? 'Código';
 }
 
 // Obtener rutinas asignadas al usuario
@@ -70,16 +70,32 @@ $db->query('SELECT * FROM objetivos_nutricionales
 $db->bind(':user_id', $user['id']);
 $objetivosNutricionales = $db->single();
 
-// Obtener historial de pagos
-$historialPagos = [];
-$db->query('SELECT p.*, s.tipo_suscripcion 
-           FROM pagos p
-           JOIN suscripciones s ON p.id = s.id_pago
-           WHERE p.id_usuario = :user_id
-           ORDER BY p.fecha_pago DESC LIMIT 5');
-$db->bind(':user_id', $user['id']);
-$historialPagos = $db->resultset();
+// Obtener historial de pagos (solo si existen pagos reales)
+
+
+// Tip del día
+$tip_del_dia = null;
+
+try {
+    $stmt = $pdo->prepare("SELECT id, titulo, contenido FROM tips WHERE activo = TRUE");
+    $stmt->execute();
+    $todos_tips = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if ($todos_tips) {
+        $semilla = date('Ymd');
+        srand($semilla);
+        shuffle($todos_tips);
+        $tip_del_dia = $todos_tips[0];
+        srand(); // restaurar aleatoriedad
+    }
+} catch (PDOException $e) {
+    $tip_del_dia = [
+        'titulo' => '¡Ups!',
+        'contenido' => 'No se pudo cargar el tip del día. Inténtalo más tarde.'
+    ];
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -475,7 +491,7 @@ $historialPagos = $db->resultset();
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="nutricion.php">
+                <a class="nav-link" href="/user/nutricion/nutricion.php">
                     <i class="fas fa-apple-alt me-2"></i>
                     Nutrición
                 </a>
@@ -512,7 +528,7 @@ $historialPagos = $db->resultset();
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="tips.php">
+                <a class="nav-link" href="../user/tips/tips.php">
                     <i class="fas fa-lightbulb me-2"></i>
                     Tips
                 </a>
@@ -741,19 +757,22 @@ $historialPagos = $db->resultset();
                 </div>
             </div>
             
-            <div class="col-lg-4 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Tip del Día</h5>
-                    </div>
-                    <div class="card-body">
-                        <h6>💧 Hidratación</h6>
-                        <p class="mb-0">Toma al menos 8 vasos de agua al día. Tu rendimiento mejora un 25% con buena hidratación.</p>
-                        <hr>
-                        <a href="tips.php" class="btn btn-sm btn-outline-primary">Ver más tips</a>
+            <?php if ($tip_del_dia): ?>
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Tip del Día</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>💡 <?= htmlspecialchars($tip_del_dia['titulo']) ?></h6>
+                            <p class="mb-0"><?= nl2br(htmlspecialchars($tip_del_dia['contenido'])) ?></p>
+                            <hr>
+                            <a href="tips.php" class="btn btn-sm btn-outline-primary">Ver más tips</a>
+                        </div>
                     </div>
                 </div>
-            </div>
+<?php endif; ?>
+
         </div>
     </main>
 
