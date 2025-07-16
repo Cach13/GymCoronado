@@ -1,6 +1,6 @@
 /* Variables CSS para consistencia */
 :root {
-    --primary-gradient: linear-gradient(135deg, rgb(15, 46, 185) 0%, rgb(33, 60, 179) 100%);
+    --primary-gradient: linear-gradient(135deg, rgb(34, 59, 171) 0%, rgb(33, 60, 179) 100%);
     --primary-color: rgb(15, 46, 185);
     --primary-light: rgb(33, 60, 179);
     --primary-hover: rgba(15, 46, 185, 0.1);
@@ -29,10 +29,9 @@
 * {
     box-sizing: border-box;
 }
-
-/* Sidebar */
+/* Sidebar/Navbar principal */
 .sidebar {
-    background: rgb(9, 18, 93) ;
+    background: rgb(11, 73, 207);
     height: 100vh;
     padding: var(--spacing-lg);
     position: fixed;
@@ -43,6 +42,7 @@
     border-right: 1px solid var(--border-color);
     z-index: 1000;
     box-shadow: 2px 0 10px rgba(15, 46, 185, 0.1);
+    transition: all 0.3s ease;
 }
 
 /* Contenido principal */
@@ -51,7 +51,10 @@
     margin-left: 250px;
     min-height: 100vh;
     background-color: #f5f6fa;
+    transition: margin 0.3s ease;
 }
+
+
 
 /* Enlaces de navegación */
 .nav-link {
@@ -91,8 +94,8 @@
 
 /* Headers de tarjetas más variados */
 .card-header {
-    background: linear-gradient(135deg, #24629f 0%, #2e5d8d 100%);
-    border-bottom: 2px solid #dee2e6;
+    background: linear-gradient(135deg, #ffffff 0%, #0d0b9f 100%);
+    border-bottom: 2px solid #2173c5;
     padding: var(--spacing-md);
     font-weight: 600;
     color: var(--dark-text);
@@ -131,12 +134,12 @@
 
 .card-body {
     padding: var(--spacing-lg);
-    background: rgb(255, 255, 255);
+    background: rgb(251, 252, 255);
 }
 
 .card-footer {
-    border-top: 1px solid #dee2e6;
-    background: linear-gradient(135deg, #315578 0%, #e9ecef 100%);
+    border-top: 1px solid #083b6e;
+    background: linear-gradient(135deg, #e3e3e3 0%, #ffffff 100%);
     padding: var(--spacing-md);
 }
 
@@ -172,7 +175,7 @@
 }
 
 .modal-header {
-    background: linear-gradient(135deg, #185da1 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, #0552f7 0%, #0481fe 100%);
     border-bottom: 2px solid #dee2e6;
     padding: var(--spacing-lg);
 }
@@ -183,7 +186,7 @@
 }
 
 .modal-footer {
-    background: linear-gradient(135deg, #0d3358 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, #153af3 0%, #044ffc 100%);
     border-top: 1px solid #dee2e6;
     padding: var(--spacing-md) var(--spacing-lg);
 }
@@ -203,11 +206,11 @@
     border-radius: var(--border-radius);
     transition: var(--transition);
     background: rgba(248, 249, 250, 0.5);
-    border: 1px solid #e9ecef;
+    border: 1px solid #0937ef;
 }
 
 .form-check:hover {
-    background-color: #f8f9fa;
+    background-color: #f8f8fa;
     border-color: #dee2e6;
 }
 
@@ -592,7 +595,7 @@
 }
 
 .rutina-descripcion {
-    background: #f8f9fa;
+    background: #1a1ee9;
     padding: 1rem;
     border-radius: 8px;
     margin-bottom: 1.5rem;
@@ -724,7 +727,7 @@
 }
 
 .btn-close-modal {
-    background: #6a11cb;
+    background: #fefefe;
     color: white;
     border: none;
     padding: 8px 20px;
@@ -736,7 +739,7 @@
 }
 
 .btn-close-modal:hover {
-    background: #4d0b9a;
+    background: #0b2a9a;
 }
 
 /* Loading */
@@ -755,7 +758,7 @@
     width: 50px;
     height: 50px;
     border: 5px solid #f3f3f3;
-    border-top: 5px solid #6a11cb;
+    border-top: 5px solid #1140cb;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 15px;
@@ -853,7 +856,7 @@
 
 /* --- Header del modal --- */
 .modal-header {
-    background: linear-gradient(135deg, #007bff, #6610f2);
+    background: linear-gradient(135deg, #1338db, #1c27e8);
     color: white;
     padding: 1.2rem;
     border-bottom: none;
@@ -872,7 +875,7 @@
 
 /* --- Tarjetas con contorno azul --- */
 .modal-body .info-card {
-    background: #ffffff;
+    background: #fafafa;
     border: 2px solid #007bff;
     border-radius: 12px;
     padding: 1rem 1.2rem;
@@ -1139,4 +1142,78 @@
 
 .bg-gradient-danger {
     background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%) !important;
+}
+
+/* Versión móvil - Navbar superior */
+@media (max-width: 767.98px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        transform: translateY(0);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .sidebar::before {
+        content: "Menú";
+        color: white;
+        font-weight: bold;
+        margin-right: var(--spacing-md);
+        display: inline-block;
+    }
+    
+    .sidebar .nav {
+        display: flex;
+        flex-direction: row;
+        gap: var(--spacing-sm);
+    }
+    
+    .sidebar .nav-link {
+        margin-bottom: 0;
+        padding: var(--spacing-sm);
+        display: inline-block;
+    }
+    
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+        transform: translateY(2px) !important;
+    }
+    
+    .content {
+        margin-left: 0;
+        margin-top: 60px; /* Ajusta según la altura de tu navbar */
+        padding: var(--spacing-md);
+    }
+    
+    /* Ocultar overlay si existe */
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* Ajustes adicionales para pantallas muy pequeñas */
+@media (max-width: 400px) {
+    .sidebar {
+        padding: var(--spacing-sm);
+    }
+    
+    .sidebar .nav-link {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+    
+    .content {
+        margin-top: 50px;
+    }
 }

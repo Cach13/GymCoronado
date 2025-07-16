@@ -426,9 +426,7 @@ $currentUser = gym_get_logged_in_user();
                     <a href="/admin/generarCodigo.php" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Generar Código
                     </a>
-                    <button class="btn btn-info" onclick="showCodeStatistics()">
-                        <i class="fas fa-chart-bar"></i> Estadísticas
-                    </button>
+                    
                 </div>
             </div>
             

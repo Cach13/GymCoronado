@@ -1,0 +1,284 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #073784, #1e40af);
+    color: white;
+    padding: 40px 20px;
+    text-align: center;
+    position: relative;
+}
+
+.header h1 {
+    font-size: 2.8em;
+    margin-bottom: 10px;
+}
+
+.header p {
+    font-size: 1.2em;
+    opacity: 0.95;
+}
+
+/* Estadísticas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    padding: 30px;
+    background: #e0f2fe;
+}
+
+.stat-card {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    border: 2px solid #3b82f6;
+    transition: 0.3s ease;
+}
+
+.stat-card:hover {
+    background: #073784;
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    color: #1e3a8a;
+}
+
+.stat-label {
+    font-size: 1em;
+    color: #475569;
+    margin-top: 5px;
+    text-transform: uppercase;
+}
+
+/* Comidas */
+.meals-container {
+    padding: 30px;
+}
+
+.meal-card {
+    background: #dbe8f9;
+    border: 2px solid #93c5fd;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    overflow: hidden;
+    transition: 0.3s ease;
+}
+
+.meal-card:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.meal-header {
+    background: #073784;
+    color: white;
+    padding: 20px;
+}
+
+.meal-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.5em;
+}
+
+.meal-time {
+    font-size: 0.95em;
+    opacity: 0.9;
+}
+
+.meal-content {
+    padding: 20px;
+}
+
+.food-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 15px;
+}
+
+.food-item {
+    background: #f8fafc;
+    padding: 15px;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.food-name {
+    font-weight: 600;
+    font-size: 1.05em;
+    margin-bottom: 5px;
+}
+
+.food-portion {
+    font-size: 0.95em;
+    color: #475569;
+}
+
+/* Totales */
+.meal-totals {
+    background: #eff6ff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+.totals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    text-align: center;
+    gap: 10px;
+}
+
+.total-item {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+}
+
+.total-value {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #1e3a8a;
+}
+
+.total-label {
+    font-size: 0.85em;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+/* Consejos */
+.tips-section {
+    background: #e0f2fe;
+    padding: 40px 30px;
+}
+
+.tips-title {
+    text-align: center;
+    font-size: 2em;
+    color: #1e3a8a;
+    margin-bottom: 20px;
+}
+
+.tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.tip-card {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #1d4ed8;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.tip-icon {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.tip-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #1e40af;
+    margin-bottom: 5px;
+}
+
+.tip-content {
+    font-size: 0.95em;
+    color: #475569;
+    line-height: 1.5;
+}
+
+/* Alternativas */
+.alternatives-section {
+    background: white;
+    padding: 40px 30px;
+    margin-top: 40px;
+    border-top: 6px solid #3b82f6;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+}
+
+.alternatives-section h2 {
+    font-size: 2em;
+    color: #1e3a8a;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.alternatives-section p {
+    text-align: center;
+    font-size: 1.05em;
+    color: #475569;
+    margin-bottom: 25px;
+}
+
+.meal-alternatives {
+    margin-bottom: 25px;
+}
+
+.meal-alternatives h3 {
+    font-size: 1.2em;
+    color: #2563eb;
+    margin-bottom: 10px;
+    border-left: 4px solid #3b82f6;
+    padding-left: 10px;
+}
+
+.meal-alternatives ul {
+    padding-left: 30px;
+    color: #334155;
+}
+
+.meal-alternatives li {
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 2em;
+    }
+
+    .meal-title {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stats-grid,
+    .totals-grid,
+    .food-grid,
+    .tips-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

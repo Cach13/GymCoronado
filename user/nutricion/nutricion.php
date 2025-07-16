@@ -10,13 +10,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
     
     <style>
-        /* ===========================================
-           ESTILOS PERSONALIZADOS
-        =========================================== */
+      
         
         /* Header personalizado */
 .header-custom {
-    background: linear-gradient(135deg, #0a1f44 0%, #1a3a8f 100%);
+    background: linear-gradient(135deg, #0b2d9cff 0%, #25408cff 100%);
     color: white;
     padding: 2rem 0;
 }
@@ -221,21 +219,7 @@
                 beneficios: ["Pérdida de peso gradual", "Mejora cardiovascular", "Rico en antioxidantes"],
                 archivo: "mediterranea.html"
             },
-            { 
-                id: 2,
-                nombre: "Dieta Low Carb Femenina",
-                descripcion: "Dieta baja en carbohidratos y alta en proteínas, diseñada para acelerar la pérdida de peso en mujeres.",
-                genero: "femenino",
-                objetivo: "bajar_peso",
-                calorias: 1200,
-                proteinas: 120,
-                carbohidratos: 60,
-                grasas: 65,
-                comidas: 4,
-                duracion_sugerida: "6-8 semanas",
-                beneficios: ["Pérdida rápida de peso", "Control de apetito", "Estabiliza glucosa"],
-                archivo: "dieta_low_carb_femenina.html"
-            },
+            
             
             // DIETAS PARA MUJERES - SUBIR PESO
             {
@@ -251,24 +235,9 @@
                 comidas: 6,
                 duracion_sugerida: "12-16 semanas",
                 beneficios: ["Ganancia de masa muscular", "Aumento de energía", "Nutrición completa"],
-                archivo: "dieta_ganancia_limpia_femenina.html"
+                archivo: "ganancia.html"
             },
-            {
-                id: 4,
-                nombre: "Dieta Bulk Femenina",
-                descripcion: "Dieta alta en calorías y macronutrientes para mujeres que buscan ganar peso y volumen muscular.",
-                genero: "femenino",
-                objetivo: "subir_peso",
-                calorias: 2400,
-                proteinas: 160,
-                carbohidratos: 300,
-                grasas: 80,
-                comidas: 6,
-                duracion_sugerida: "16-20 semanas",
-                beneficios: ["Máxima ganancia muscular", "Fuerza aumentada", "Recuperación optimizada"],
-                archivo: "dieta_bulk_femenina.html"
-            },
-            
+           
             // DIETAS PARA HOMBRES - BAJAR PESO
             {
                 id: 5,
@@ -283,23 +252,9 @@
                 comidas: 5,
                 duracion_sugerida: "8-12 semanas",
                 beneficios: ["Definición muscular", "Pérdida de grasa", "Mantiene músculo"],
-                archivo: "dieta_cutting_masculina.html"
+                archivo: "bajar.html"
             },
-            {
-                id: 6,
-                nombre: "Dieta Metabólica Masculina",
-                descripcion: "Dieta diseñada para acelerar el metabolismo y promover la pérdida de peso en hombres activos.",
-                genero: "masculino",
-                objetivo: "bajar_peso",
-                calorias: 2000,
-                proteinas: 150,
-                carbohidratos: 175,
-                grasas: 67,
-                comidas: 6,
-                duracion_sugerida: "10-14 semanas",
-                beneficios: ["Metabolismo acelerado", "Pérdida sostenida", "Energía estable"],
-                archivo: "dieta_metabolica_masculina.html"
-            },
+           
             
             // DIETAS PARA HOMBRES - SUBIR PESO
             {
@@ -315,23 +270,9 @@
                 comidas: 6,
                 duracion_sugerida: "12-16 semanas",
                 beneficios: ["Ganancia muscular rápida", "Fuerza aumentada", "Volumen corporal"],
-                archivo: "dieta_bulk_masculina.html"
+                archivo: "subir.html"
             },
-            {
-                id: 8,
-                nombre: "Dieta Mass Gainer Masculina",
-                descripcion: "Dieta ultra alta en calorías para hombres con dificultades para ganar peso y masa muscular.",
-                genero: "masculino",
-                objetivo: "subir_peso",
-                calorias: 3500,
-                proteinas: 250,
-                carbohidratos: 437,
-                grasas: 117,
-                comidas: 7,
-                duracion_sugerida: "16-20 semanas",
-                beneficios: ["Máxima ganancia de peso", "Desarrollo muscular", "Recuperación superior"],
-                archivo: "dieta_mass_gainer_masculina.html"
-            }
+           
         ];
 
         // ===========================================

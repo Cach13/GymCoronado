@@ -105,322 +105,7 @@ try {
     <title>Dashboard - <?php echo SITE_NAME; ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg,rgb(15, 46, 185) 0%,rgb(33, 60, 179) 100%);
-            --sidebar-width: 250px;
-        }
-        
-        body {
-            background-color:rgb(198, 201, 205);
-            padding-top: 76px; /* Altura del navbar fijo */
-        }
-        
-        .navbar {
-            background: var(--primary-gradient);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            height: 76px;
-        }
-        
-        /* Sidebar Desktop */
-        .sidebar {
-            position: fixed;
-            top: 76px;
-            left: 0;
-            width: var(--sidebar-width);
-            height: calc(100vh - 76px);
-            background: white;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            overflow-y: auto;
-            transition: transform 0.3s ease;
-            z-index: 1020;
-        }
-        
-        .sidebar .nav-link {
-            color: #495057;
-            padding: 1rem 1.5rem;
-            border-radius: 0;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-        
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: var(--primary-gradient);
-            color: white;
-        }
-        
-        /* Main content ajustado para sidebar */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 2rem;
-            min-height: calc(100vh - 76px);
-        }
-        
-        /* Mobile sidebar */
-        .sidebar-backdrop {
-            display: none;
-            position: fixed;
-            top: 76px;
-            left: 0;
-            width: 100%;
-            height: calc(100vh - 76px);
-            background: rgba(0,0,0,0.5);
-            z-index: 1019;
-        }
-        
-        .sidebar-toggle {
-            display: none;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            padding: 0.5rem;
-        }
-
-            /* Estilos para el menú desplegable */
-        .sidebar .dropdown-menu {
-            background-color: #f8f9fa;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-left: 1.5rem;
-            border-radius: 0 8px 8px 8px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            padding: 0;
-            display: block !important; /* Forzar display block */
-        }
-
-        .sidebar .dropdown-menu.show {
-            max-height: 200px;
-            padding: 0.5rem 0;
-        }
-
-        .sidebar .dropdown-item {
-            padding: 0.5rem 1.5rem;
-            color: #333;
-            transition: all 0.2s;
-            display: block;
-        }
-
-        .sidebar .dropdown-item:hover {
-            background-color: #e9ecef;
-            color: #0d6efd;
-        }
-
-        .sidebar .dropdown-icon {
-            transition: transform 0.3s;
-            font-size: 0.8rem;
-        }
-
-        .sidebar .dropdown-toggle.active .dropdown-icon {
-            transform: rotate(180deg);
-        }
-
-        /* Comportamiento en desktop */
-        @media (min-width: 992px) {
-            .sidebar .dropdown:hover .dropdown-menu {
-                max-height: 200px;
-                padding: 0.5rem 0;
-            }
-            
-            .sidebar .dropdown:hover .dropdown-icon {
-                transform: rotate(180deg);
-            }
-        }
-/* Asegurar que el submenú se muestre al pasar el mouse */
-@media (min-width: 992px) {
-    .sidebar .dropdown:hover .dropdown-menu {
-        display: block;
-    }
-}
-        
-        /* Estilos de las tarjetas */
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s;
-            height: 100%;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            flex-shrink: 0;
-        }
-        
-        .welcome-card {
-            background: var(--primary-gradient);
-            color: white;
-            border-radius: 15px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .quick-action-btn {
-            border-radius: 10px;
-            padding: 1rem;
-            border: 2px solid #e9ecef;
-            background: white;
-            transition: all 0.3s;
-            text-decoration: none;
-            color: #495057;
-            display: block;
-            height: 100%;
-        }
-        
-        .quick-action-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
-            transform: translateY(-2px);
-        }
-        
-        .membresia-vencida {
-            background: linear-gradient(135deg, #dc3545, #c82333) !important;
-        }
-        .membresia-pronto-vencer {
-            background: linear-gradient(135deg, #ffc107, #e0a800) !important;
-        }
-        .membresia-activa {
-            background: linear-gradient(135deg, #28a745, #1e7e34) !important;
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 991.98px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            
-            .sidebar-backdrop.show {
-                display: block;
-            }
-            
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
-            
-            .sidebar-toggle {
-                display: block;
-            }
-            
-            .welcome-card {
-                padding: 1.5rem;
-                text-align: center;
-            }
-            
-            .welcome-card .row {
-                align-items: center !important;
-            }
-            
-            .stat-card {
-                margin-bottom: 1rem;
-            }
-            
-            .stat-card .d-flex {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-            
-            .stat-card .ms-3 {
-                margin-left: 0 !important;
-            }
-        }
-        
-        @media (max-width: 575.98px) {
-            body {
-                padding-top: 70px;
-            }
-            
-            .navbar {
-                height: 70px;
-            }
-            
-            .sidebar,
-            .sidebar-backdrop {
-                top: 70px;
-                height: calc(100vh - 70px);
-            }
-            
-            .main-content {
-                padding: 1rem 0.5rem;
-            }
-            
-            .welcome-card {
-                padding: 1rem;
-                margin-bottom: 1rem;
-            }
-            
-            .welcome-card h2 {
-                font-size: 1.5rem;
-            }
-            
-            .stat-card {
-                padding: 1rem;
-            }
-            
-            .quick-action-btn {
-                padding: 0.8rem;
-            }
-            
-            .quick-action-btn i {
-                font-size: 1.5rem !important;
-            }
-        }
-        
-        /* Mejoras adicionales para móvil */
-        @media (max-width: 991.98px) {
-            .col-md-3 {
-                margin-bottom: 1rem;
-            }
-            
-            .card {
-                margin-bottom: 1rem;
-            }
-        }
-        /* Estilos específicos para móvil */
-@media (max-width: 991.98px) {
-    .sidebar .dropdown-menu {
-        position: static;
-        transform: none;
-        width: auto;
-        margin-left: 2rem;
-        border-left: 2px solid #e9ecef;
-        box-shadow: none;
-    }
-    
-    .sidebar .dropdown-item {
-        padding: 0.5rem 1rem;
-    }
-    
-    .sidebar .dropdown-toggle {
-        cursor: pointer;
-    }
-}
-    </style>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
 </head>
 <body>
     <!-- Navbar -->
@@ -443,7 +128,7 @@ try {
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
-                        <li><a class="dropdown-item" href="pagos.php"><i class="fas fa-credit-card me-2"></i>Pagos</a></li>
+                        <li><a class="dropdown-item" href="user/pagos/pagos.php"><i class="fas fa-credit-card me-2"></i>Pagos</a></li>
                         <li><a class="dropdown-item" href="settings.php"><i class="fas fa-cog me-2"></i>Configuración</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
@@ -668,7 +353,7 @@ try {
             <?php else: ?>
                 Te quedan solo <?php echo $diasRestantes; ?> días. Renueva tu membresía antes de que expire.
             <?php endif; ?>
-            <a href="pagos.php" class="btn btn-sm <?php echo ($diasRestantes < 0) ? 'btn-light' : 'btn-warning'; ?> ms-2">
+            <a href="user/pagos/pagos.php" class="btn btn-sm <?php echo ($diasRestantes < 0) ? 'btn-light' : 'btn-warning'; ?> ms-2">
                 Renovar Ahora
             </a>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -708,7 +393,7 @@ try {
                 </a>
             </div>
             <div class="col-lg-3 col-md-6 mb-3">
-                <a href="pagos.php" class="quick-action-btn">
+                <a href="user/pagos/pagos.php" class="quick-action-btn">
                     <div class="text-center">
                         <i class="fas fa-credit-card fa-2x mb-2" style="color: #6f42c1;"></i>
                         <h6>Renovar Membresía</h6>
@@ -767,7 +452,7 @@ try {
                             <h6>💡 <?= htmlspecialchars($tip_del_dia['titulo']) ?></h6>
                             <p class="mb-0"><?= nl2br(htmlspecialchars($tip_del_dia['contenido'])) ?></p>
                             <hr>
-                            <a href="tips.php" class="btn btn-sm btn-outline-primary">Ver más tips</a>
+                            <a href="user/tips/tips.php" class="btn btn-sm btn-outline-primary">Ver más tips</a>
                         </div>
                     </div>
                 </div>
