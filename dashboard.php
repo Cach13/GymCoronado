@@ -15,65 +15,34 @@ $userObj = new User();
 // Obtener estadísticas del usuario
 $userStats = $userObj->get_user_stats($user['id']);
 
-// Obtener suscripción activa del usuario (puede venir de código o pago)
-$subscription = $userObj->get_active_subscription($user['id']);
-
-// Calcular días restantes de membresía
-$diasRestantes = 0;
-$estadoMembresia = 'Sin suscripción activa';
-
-if ($subscription) {
-    $fechaVencimiento = new DateTime($subscription['fecha_fin']);
-    $fechaActual = new DateTime();
-    $diferencia = $fechaActual->diff($fechaVencimiento);
-
-    if ($fechaVencimiento > $fechaActual) {
-        $diasRestantes = $diferencia->days;
-        $estadoMembresia = 'Activa';
-    } else {
-        $diasRestantes = -$diferencia->days;
-        $estadoMembresia = 'Vencida';
-    }
-
-    // Actualizar sesión (si la suscripción vino de código, no hay modalidad_pago)
-    $_SESSION['user_tipo_suscripcion'] = $subscription['tipo_suscripcion'] ?? 'N/A';
-    $_SESSION['user_fecha_fin_suscripcion'] = $subscription['fecha_fin'] ?? 'N/A';
-    $_SESSION['user_estado_suscripcion'] = $subscription['estado'] ?? $estadoMembresia;
-    $_SESSION['user_modalidad_pago'] = $subscription['modalidad_pago'] ?? 'Código';
-}
-
 // Obtener rutinas asignadas al usuario
 $rutinasAsignadas = [];
 if (isset($user['id'])) {
     $db = new Database();
     $db->query('SELECT r.* FROM rutinas r 
-               JOIN usuario_rutinas ur ON r.id = ur.id_rutina 
-               WHERE ur.id_usuario = :user_id AND ur.activa = 1');
+                JOIN usuario_rutinas ur ON r.id = ur.id_rutina 
+                WHERE ur.id_usuario = :user_id AND ur.activa = 1');
     $db->bind(':user_id', $user['id']);
     $rutinasAsignadas = $db->resultset();
 }
 
 // Obtener medidas corporales recientes
 $medidasRecientes = [];
-$db = new Database();
 $db->query('SELECT * FROM medidas 
-           WHERE id_usuario = :user_id 
-           ORDER BY fecha_medicion DESC LIMIT 5');
+            WHERE id_usuario = :user_id 
+            ORDER BY fecha_medicion DESC LIMIT 5');
 $db->bind(':user_id', $user['id']);
 $medidasRecientes = $db->resultset();
 
-// Obtener objetivos nutricionales
+// Obtener objetivos nutricionales activos
 $objetivosNutricionales = [];
 $db->query('SELECT * FROM objetivos_nutricionales 
-           WHERE id_usuario = :user_id AND activo = 1 
-           ORDER BY fecha_inicio DESC LIMIT 1');
+            WHERE id_usuario = :user_id AND activo = 1 
+            ORDER BY fecha_inicio DESC LIMIT 1');
 $db->bind(':user_id', $user['id']);
 $objetivosNutricionales = $db->single();
 
-// Obtener historial de pagos (solo si existen pagos reales)
-
-
-// Tip del día
+// Obtener tip del día
 $tip_del_dia = null;
 
 try {
@@ -116,7 +85,7 @@ try {
             </button>
             
             <a class="navbar-brand fw-bold" href="dashboard.php">
-                <i class="fas fa-dumbbell me-2"></i>
+                <img src="/assets/images/gym (1).png" alt="Logo" style="height: 65px;" class="me-2">
                 <span class="d-none d-sm-inline"><?php echo SITE_NAME; ?></span>
             </a>
             
@@ -280,47 +249,7 @@ try {
                 </div>
             </div>
             
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="stat-card">
-                    <div class="d-flex align-items-center">
-                        <?php
-                        $iconClass = 'membresia-activa';
-                        $iconSymbol = 'fas fa-calendar-alt';
-                        
-                        if ($diasRestantes < 0) {
-                            $iconClass = 'membresia-vencida';
-                            $iconSymbol = 'fas fa-exclamation-triangle';
-                        } elseif ($diasRestantes <= 7) {
-                            $iconClass = 'membresia-pronto-vencer';
-                            $iconSymbol = 'fas fa-clock';
-                        }
-                        ?>
-                        <div class="stat-icon <?php echo $iconClass; ?>">
-                            <i class="<?php echo $iconSymbol; ?>"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h3 class="mb-0">
-                                <?php 
-                                if ($diasRestantes < 0) {
-                                    echo 'Vencida';
-                                } else {
-                                    echo $diasRestantes;
-                                }
-                                ?>
-                            </h3>
-                            <small class="text-muted">
-                                <?php 
-                                if ($diasRestantes < 0) {
-                                    echo 'Membresía';
-                                } else {
-                                    echo 'Días Restantes';
-                                }
-                                ?>
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            
             
             <div class="col-lg-3 col-md-6 mb-3">
                 <div class="stat-card">
@@ -337,29 +266,7 @@ try {
             </div>
         </div>
 
-        <!-- Alerta de membresía si está próxima a vencer o vencida -->
-        <?php if ($diasRestantes <= 7): ?>
-        <div class="alert <?php echo ($diasRestantes < 0) ? 'alert-danger' : 'alert-warning'; ?> alert-dismissible fade show mb-4" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>
-                <?php if ($diasRestantes < 0): ?>
-                    ¡Tu membresía ha vencido!
-                <?php else: ?>
-                    ¡Tu membresía vence pronto!
-                <?php endif; ?>
-            </strong>
-            <?php if ($diasRestantes < 0): ?>
-                Tu membresía venció hace <?php echo abs($diasRestantes); ?> días. Renueva tu membresía para seguir disfrutando de todos los servicios.
-            <?php else: ?>
-                Te quedan solo <?php echo $diasRestantes; ?> días. Renueva tu membresía antes de que expire.
-            <?php endif; ?>
-            <a href="user/pagos/pagos.php" class="btn btn-sm <?php echo ($diasRestantes < 0) ? 'btn-light' : 'btn-warning'; ?> ms-2">
-                Renovar Ahora
-            </a>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <?php endif; ?>
-
+        
         <!-- Quick Actions -->
         <div class="row mb-4">
             <div class="col-12">
@@ -392,15 +299,7 @@ try {
                     </div>
                 </a>
             </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <a href="user/pagos/pagos.php" class="quick-action-btn">
-                    <div class="text-center">
-                        <i class="fas fa-credit-card fa-2x mb-2" style="color: #6f42c1;"></i>
-                        <h6>Renovar Membresía</h6>
-                        <small class="text-muted">Gestionar pagos</small>
-                    </div>
-                </a>
-            </div>
+            
         </div>
 
         <!-- Recent Activity & Tips -->

@@ -147,17 +147,6 @@ function gym_get_logged_in_user() {
     return null;
 }
 
-// Función para obtener datos de suscripción del usuario (nueva función)
-function gym_get_user_subscription($user_id) {
-    $db = new Database();
-    $db->query("SELECT s.*, p.modalidad_pago 
-                FROM suscripciones s 
-                LEFT JOIN pagos p ON s.id_pago = p.id 
-                WHERE s.id_usuario = :user_id 
-                ORDER BY s.fecha_inicio DESC LIMIT 1");
-    $db->bind(':user_id', $user_id);
-    return $db->single();
-}
 
 // Función para cerrar sesión
 function gym_logout() {
@@ -210,84 +199,4 @@ function gym_check_permission($required_role) {
         gym_show_alert('No tienes permisos para acceder a esta página', 'error');
         gym_redirect('dashboard.php');
     }
-}
-
-// Función para verificar estado de suscripción (actualizada con nueva estructura)
-function gym_check_subscription($user_id = null) {
-    if (!gym_is_logged_in()) return false;
-    
-    if ($_SESSION['user_tipo'] !== 'cliente') return true;
-    
-    $user_id = $user_id ?? $_SESSION['user_id'];
-    $subscription = gym_get_user_subscription($user_id);
-    
-    if (!$subscription) {
-        return false;
-    }
-    
-    $today = new DateTime();
-    $end_date = new DateTime($subscription['fecha_fin']);
-    
-    return ($end_date >= $today && $subscription['estado'] === 'activa');
-}
-
-// Función para obtener días restantes de suscripción (actualizada)
-function gym_get_remaining_days($user_id = null) {
-    if (!gym_is_logged_in()) {
-        return 0;
-    }
-    
-    $user_id = $user_id ?? $_SESSION['user_id'];
-    $subscription = gym_get_user_subscription($user_id);
-    
-    if (!$subscription || empty($subscription['fecha_fin'])) {
-        return 0;
-    }
-    
-    $today = new DateTime();
-    $end_date = new DateTime($subscription['fecha_fin']);
-    
-    if ($end_date < $today) {
-        return 0;
-    }
-    
-    return $today->diff($end_date)->days;
-}
-
-// Función para formatear tipo de suscripción (actualizada)
-function gym_format_subscription_type($type) {
-    $types = [
-        'semanal' => 'Semanal',
-        'mensual' => 'Mensual',
-        'trimestral' => 'Trimestral',
-        'semestral' => 'Semestral',
-        'anual' => 'Anual'
-    ];
-    
-    return $types[$type] ?? $type;
-}
-
-// Función para obtener estado de suscripción formateado (nueva función)
-function gym_format_subscription_status($status) {
-    $statuses = [
-        'activa' => 'Activa',
-        'vencida' => 'Vencida',
-        'cancelada' => 'Cancelada',
-        'suspendida' => 'Suspendida'
-    ];
-    
-    return $statuses[$status] ?? $status;
-}
-
-// Función para obtener precio de suscripción (nueva función)
-function gym_get_subscription_price($type) {
-    $db = new Database();
-    $db->query("SELECT precio FROM precios_suscripciones 
-                WHERE tipo_suscripcion = :type 
-                AND activo = TRUE 
-                AND (fecha_fin_vigencia IS NULL OR fecha_fin_vigencia >= CURDATE())
-                ORDER BY fecha_inicio_vigencia DESC LIMIT 1");
-    $db->bind(':type', $type);
-    $result = $db->single();
-    return $result ? $result['precio'] : 0;
 }

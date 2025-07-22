@@ -62,16 +62,8 @@ class User {
                 $_SESSION['user_fecha_nacimiento'] = $user['fecha_nacimiento'] ?? null;
                 $_SESSION['user_genero'] = $user['genero'] ?? null;
 
-                // Obtener suscripción activa si es cliente
-                if ($user['tipo'] === 'cliente') {
-                    $subscription = $this->get_active_subscription($user['id']);
-                    if ($subscription) {
-                        $_SESSION['user_tipo_suscripcion'] = $subscription['tipo_suscripcion'];
-                        $_SESSION['user_fecha_fin_suscripcion'] = $subscription['fecha_fin'];
-                        $_SESSION['user_estado_suscripcion'] = $subscription['estado'];
-                        $_SESSION['user_modalidad_pago'] = $subscription['modalidad_pago'];
-                    }
-                }
+              
+               
 
                 return ['success' => true, 'message' => 'Inicio de sesión exitoso'];
             } else {
@@ -94,16 +86,6 @@ class User {
         }
     }
 
-    // Obtener suscripción activa (nuevo método)
-    public function get_active_subscription($user_id) {
-        $this->db->query("SELECT s.*, cp.codigo, cp.tipo_plan 
-                        FROM suscripciones s
-                        LEFT JOIN codigos_planes cp ON s.id_codigo_plan = cp.id
-                        WHERE s.id_usuario = :user_id AND s.estado = 'activa'
-                        ORDER BY s.fecha_fin DESC LIMIT 1");
-        $this->db->bind(':user_id', $user_id);
-        return $this->db->single();
-    }
 
 
     // Obtener usuario por ID
@@ -280,42 +262,7 @@ class User {
         return $errors;
     }
 
-    // Métodos de suscripción (nuevos)
-    public function activate_subscription_with_code($user_id, $codigo, $activada_por) {
-        try {
-            // Llamar al procedimiento almacenado
-            $this->db->query("CALL ActivarSuscripcionConCodigo(:user_id, :codigo, :activada_por)");
-            $this->db->bind(':user_id', $user_id);
-            $this->db->bind(':codigo', $codigo);
-            $this->db->bind(':activada_por', $activada_por);
-
-            $result = $this->db->single(); // El procedimiento retorna un solo resultado
-            return [
-                'success' => true,
-                'mensaje' => $result['mensaje'],
-                'tipo_plan' => $result['tipo_plan'],
-                'fecha_inicio' => $result['fecha_inicio'],
-                'fecha_fin' => $result['fecha_fin'],
-                'dias_agregados' => $result['dias_agregados']
-            ];
-        } catch (PDOException $e) {
-            return [
-                'success' => false,
-                'mensaje' => 'Error al activar la suscripción: ' . $e->getMessage()
-            ];
-        }
-    }
-
-
-        public function get_user_subscriptions($user_id) {
-        $this->db->query('SELECT s.*, cp.codigo, cp.tipo_plan 
-                        FROM suscripciones s
-                        LEFT JOIN codigos_planes cp ON s.id_codigo_plan = cp.id
-                        WHERE s.id_usuario = :user_id 
-                        ORDER BY s.fecha_inicio DESC');
-        $this->db->bind(':user_id', $user_id);
-        return $this->db->resultset();
-    }
+    
 
     // Ejercicios preestablecidos
     public function agregar_ejercicio_preestablecido($data) {

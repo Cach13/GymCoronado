@@ -137,7 +137,12 @@ foreach($datosMedidas as $medida) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <style>
+    <style>   body {
+            padding-top: 120px; /* Espacio para el header sticky */
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+        }
+
         .chart-container {
             position: relative;
             height: 400px;
@@ -151,26 +156,6 @@ foreach($datosMedidas as $medida) {
             margin-bottom: 25px;
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .stat-card h3 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .stat-card p {
-            margin: 0;
-            opacity: 0.9;
         }
         
         .section-title {
@@ -206,7 +191,7 @@ foreach($datosMedidas as $medida) {
         }
         
         .metric-summary {
-            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            background: rgb(20, 66, 233);
             color: white;
             border-radius: 10px;
             padding: 15px;
@@ -239,21 +224,242 @@ foreach($datosMedidas as $medida) {
             padding: 50px;
             color: #6c757d;
         }
+
+        /* Header con efecto glass mejorado */
+        .glass-header {
+            background: linear-gradient(135deg, rgb(20, 66, 233) 0%, rgba(52, 76, 161, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 100px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Contenedor del header */
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Logo y título */
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-section img {
+            height: 60px;
+            width: auto;
+        }
+
+        .site-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 0;
+        }
+
+        /* Botones del header */
+        .header-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-decoration: none;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Estadísticas mejoradas */
+        .stats-section {
+            margin-top: 30px;
+            margin-bottom: 40px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #0d6efd, #6610f2);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            color: #0d6efd;
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.95rem;
+            color: #6c757d;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .stat-trend {
+            font-size: 0.85rem;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .trend-positive {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .trend-negative {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .trend-neutral {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 90px;
+            }
+            
+            .glass-header {
+                height: 80px;
+            }
+            
+            .site-title {
+                font-size: 1.4rem;
+            }
+            
+            .btn-back span {
+                display: none;
+            }
+            
+            .btn-back {
+                padding: 10px 12px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-section img {
+                height: 45px;
+            }
+            
+            .site-title {
+                font-size: 1.2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="display-5">
-                <i class="fas fa-chart-line text-primary"></i> Progreso de Métricas Corporales
-            </h1>
-            <div>
-                <a href="metricas.php" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-plus"></i> Agregar Métricas
+    <!-- Header con efecto glass mejorado -->
+    <header class="glass-header">
+        <div class="header-container">
+            <!-- Logo y título -->
+            <div class="logo-section">
+                <img src="/assets/images/gym (1).png" alt="Logo">
+                <h1 class="site-title">Progreso de Métricas</h1>
+            </div>
+            
+            <!-- Botones -->
+            <div class="header-buttons">
+                <a href="metricas.php" class="btn-back">
+                    <i class="fas fa-plus me-2"></i>
+                    <span>Agregar Métricas</span>
                 </a>
-                <a href="/dashboard.php" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Dashboard
+                <a href="/dashboard.php" class="btn-back">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    <span>Volver</span>
                 </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <div class="container-fluid px-4">
+        <!-- Verificación de datos (esto iría en tu PHP) -->
+        <div style="display: none;" id="no-data-alert">
+            <div class="alert alert-warning alert-no-data">
+                <i class="fas fa-chart-line fa-3x mb-3"></i>
+                <h4>No hay datos disponibles</h4>
+                <p>Aún no tienes medidas registradas. <a href="metricas.php">Agrega tu primera medición</a> para ver tus gráficas de progreso.</p>
             </div>
         </div>
 
@@ -265,49 +471,51 @@ foreach($datosMedidas as $medida) {
             </div>
         <?php else: ?>
 
-        <!-- Estadísticas Generales -->
-        <div class="row mb-4">
-            <div class="col-md-3">
+         <!-- Estadísticas Generales Mejoradas -->
+        <div class="stats-section">
+            <div class="stats-grid">
                 <div class="stat-card">
-                    <h3><?php echo $estadisticasGenerales['total_mediciones']; ?></h3>
-                    <p><i class="fas fa-calendar-check"></i> Mediciones Totales</p>
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-value">24</div>
+                    <p class="stat-label">Mediciones Totales</p>
+                    <div class="stat-trend trend-positive">
+                        <i class="fas fa-arrow-up"></i> +3 este mes
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
+                
                 <div class="stat-card">
-                    <h3><?php echo $estadisticasGenerales['peso_actual'] ? $estadisticasGenerales['peso_actual'] . ' kg' : '-- kg'; ?></h3>
-                    <p><i class="fas fa-weight"></i> Peso Actual</p>
+                    <div class="stat-icon">
+                        <i class="fas fa-weight"></i>
+                    </div>
+                    <div class="stat-value">72.5 kg</div>
+                    <p class="stat-label">Peso Actual</p>
+                    <div class="stat-trend trend-negative">
+                        <i class="fas fa-arrow-down"></i> -2.3 kg
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
+                
                 <div class="stat-card">
-                    <h3 id="imcActual">
-                        <?php 
-                        if ($estadisticasGenerales['peso_actual'] && $estadisticasGenerales['altura_actual']) {
-                            $imc = $estadisticasGenerales['peso_actual'] / pow($estadisticasGenerales['altura_actual']/100, 2);
-                            echo number_format($imc, 1);
-                        } else {
-                            echo '--';
-                        }
-                        ?>
-                    </h3>
-                    <p><i class="fas fa-chart-pie"></i> IMC Actual</p>
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="stat-value">22.4</div>
+                    <p class="stat-label">IMC Actual</p>
+                    <div class="stat-trend trend-positive">
+                        <i class="fas fa-check-circle"></i> Normal
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
+                
                 <div class="stat-card">
-                    <h3>
-                        <?php 
-                        if ($estadisticasGenerales['peso_actual'] && $estadisticasGenerales['peso_inicial']) {
-                            $cambio = $estadisticasGenerales['peso_actual'] - $estadisticasGenerales['peso_inicial'];
-                            $tendencia = $cambio > 0 ? '↗️' : ($cambio < 0 ? '↘️' : '➡️');
-                            echo $tendencia . ' ' . number_format(abs($cambio), 1) . ' kg';
-                        } else {
-                            echo '--';
-                        }
-                        ?>
-                    </h3>
-                    <p><i class="fas fa-trending-up"></i> Tendencia</p>
+                    <div class="stat-icon">
+                        <i class="fas fa-trending-up"></i>
+                    </div>
+                    <div class="stat-value">-5.2%</div>
+                    <p class="stat-label">Progreso General</p>
+                    <div class="stat-trend trend-positive">
+                        <i class="fas fa-trophy"></i> Excelente
+                    </div>
                 </div>
             </div>
         </div>

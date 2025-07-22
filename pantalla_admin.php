@@ -48,27 +48,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'objetivos_nutricionales' => 'id_usuario',
                     'alimentos_favoritos' => 'id_usuario',
                     'historial_acceso' => 'id_usuario',
-                    'suscripciones' => 'id_usuario',
                     'usuario_rutinas' => 'id_usuario'
                 ];
                 
                 foreach ($tablesToClean as $table => $column) {
                     $db->query("DELETE FROM $table WHERE $column = :id");
                     $db->bind(':id', $_POST['user_id']);
-                    $db->execute(); // No verificamos error para permitir tablas vacías
+                    $db->execute();
                 }
                 
-                // 2. Actualizar códigos usados por el usuario (no eliminar, solo limpiar referencia)
-                $db->query("UPDATE codigos_planes SET usado_por = NULL WHERE usado_por = :id");
-                $db->bind(':id', $_POST['user_id']);
-                $db->execute();
-                
-                // 3. Eliminar rutinas creadas por el usuario si es entrenador
+                // 2. Eliminar rutinas creadas por el usuario si es entrenador
                 $db->query("DELETE FROM rutinas WHERE id_entrenador = :id");
                 $db->bind(':id', $_POST['user_id']);
                 $db->execute();
                 
-                // 4. Finalmente eliminar al usuario
+                // 3. Finalmente eliminar al usuario
                 $db->query("DELETE FROM usuarios WHERE id = :id");
                 $db->bind(':id', $_POST['user_id']);
                 
@@ -112,152 +106,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode(['success' => false, 'message' => implode(', ', $errors)]);
             }
             exit;
-            
-        case 'create_subscription_with_code':
-            try {
-                $user_id = $_POST['user_id'];
-                $codigo = $_POST['codigo'];
-                $currentUser = gym_get_logged_in_user();
-                
-                // Usar el procedimiento almacenado para activar suscripción
-                $db->query("CALL ActivarSuscripcionConCodigo(:user_id, :codigo, :activada_por)");
-                $db->bind(':user_id', $user_id);
-                $db->bind(':codigo', $codigo);
-                $db->bind(':activada_por', $currentUser['id']);
-                
-                $result = $db->single();
-                
-                if ($result) {
-                    echo json_encode([
-                        'success' => true, 
-                        'message' => $result['mensaje'],
-                        'data' => $result
-                    ]);
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Error al activar suscripción']);
-                }
-            } catch (Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-            }
-            exit;
-            
-        case 'generate_code':
-            try {
-                $tipo_plan = $_POST['tipo_plan'];
-                $notas = $_POST['notas'] ?? '';
-                $currentUser = gym_get_logged_in_user();
-                
-                // Usar el procedimiento almacenado para generar código
-                $db->query("CALL GenerarCodigoPlan(:tipo_plan, :creado_por, :notas)");
-                $db->bind(':tipo_plan', $tipo_plan);
-                $db->bind(':creado_por', $currentUser['id']);
-                $db->bind(':notas', $notas);
-                
-                $result = $db->single();
-                
-                if ($result) {
-                    echo json_encode([
-                        'success' => true, 
-                        'message' => 'Código generado exitosamente',
-                        'codigo' => $result['codigo_generado']
-                    ]);
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Error al generar código']);
-                }
-            } catch (Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-            }
-            exit;
-            
-        case 'get_available_codes':
-            try {
-                $tipo_plan = $_POST['tipo_plan'] ?? null;
-                
-                $query = "SELECT * FROM vista_codigos_disponibles WHERE usado = FALSE";
-                if ($tipo_plan) {
-                    $query .= " AND tipo_plan = :tipo_plan";
-                }
-                $query .= " ORDER BY fecha_creacion DESC LIMIT 50";
-                
-                $db->query($query);
-                if ($tipo_plan) {
-                    $db->bind(':tipo_plan', $tipo_plan);
-                }
-                
-                $codes = $db->resultset();
-                echo json_encode(['success' => true, 'codes' => $codes]);
-            } catch (Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-            }
-            exit;
-            
-        case 'get_code_statistics':
-            try {
-                $db->query("SELECT * FROM vista_estadisticas_codigos");
-                $stats = $db->resultset();
-                echo json_encode(['success' => true, 'statistics' => $stats]);
-            } catch (Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-            }
-            exit;
-    }
+    }  
 }
 
-// Obtener métricas del dashboard (actualizado para nueva estructura)
+// Obtener métricas del dashboard (solo usuarios)
 function getDashboardMetrics($db) {
-    // Total usuarios activos
     $db->query('SELECT COUNT(*) as total FROM usuarios WHERE activo = 1');
     $totalUsuarios = $db->single()['total'];
     
-    // Nuevos usuarios este mes
     $db->query('SELECT COUNT(*) as total FROM usuarios WHERE MONTH(fecha_registro) = MONTH(CURRENT_DATE()) AND YEAR(fecha_registro) = YEAR(CURRENT_DATE()) AND activo = 1');
     $nuevosUsuarios = $db->single()['total'];
     
-    // Usuarios activos hoy
     $db->query('SELECT COUNT(*) as total FROM usuarios WHERE DATE(fecha_registro) = CURDATE() AND activo = 1');
     $usuariosHoy = $db->single()['total'];
-    
-    // Suscripciones activas
-    $db->query("SELECT COUNT(*) as total FROM suscripciones WHERE estado = 'activa' AND fecha_fin >= CURDATE()");
-    $suscripcionesActivas = $db->single()['total'];
-    
-    // Códigos disponibles
-    $db->query("SELECT COUNT(*) as total FROM codigos_planes WHERE usado = FALSE");
-    $codigosDisponibles = $db->single()['total'];
-    
-    // Códigos usados este mes
-    $db->query("SELECT COUNT(*) as total FROM codigos_planes WHERE usado = TRUE AND MONTH(fecha_uso) = MONTH(CURRENT_DATE()) AND YEAR(fecha_uso) = YEAR(CURRENT_DATE())");
-    $codigosUsadosMes = $db->single()['total'];
     
     return [
         'total_usuarios' => $totalUsuarios,
         'nuevos_usuarios' => $nuevosUsuarios,
         'usuarios_hoy' => $usuariosHoy,
-        'suscripciones_activas' => $suscripcionesActivas,
-        'codigos_disponibles' => $codigosDisponibles,
-        'codigos_usados_mes' => $codigosUsadosMes
     ];
 }
 
-// Obtener lista de usuarios (actualizada para nueva estructura)
+// Obtener lista de usuarios (sin joins a vistas eliminadas)
 function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     $offset = ($page - 1) * $limit;
     
-    $query = 'SELECT u.id, u.email, u.nombre, u.apellido, u.telefono, u.tipo, u.activo, u.puede_acceder, u.fecha_registro,
-              vs.tipo_suscripcion, vs.fecha_fin as fecha_fin_suscripcion, vs.estado_suscripcion_calculado as estado_suscripcion,
-              vs.dias_restantes, vs.codigo, vs.fecha_codigo_usado
-              FROM usuarios u
-              LEFT JOIN vista_suscripciones vs ON u.id = vs.id';
-    $countQuery = 'SELECT COUNT(*) as total FROM usuarios u';
+    $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, puede_acceder, fecha_registro
+              FROM usuarios';
+    $countQuery = 'SELECT COUNT(*) as total FROM usuarios';
     
     if ($tipo && $tipo !== 'todos') {
-        $query .= ' WHERE u.tipo = :tipo';
-        $countQuery .= ' WHERE u.tipo = :tipo';
+        $query .= ' WHERE tipo = :tipo';
+        $countQuery .= ' WHERE tipo = :tipo';
     }
     
-    $query .= ' ORDER BY u.fecha_registro DESC LIMIT :limit OFFSET :offset';
+    $query .= ' ORDER BY fecha_registro DESC LIMIT :limit OFFSET :offset';
     
-    // Obtener usuarios
     $db->query($query);
     if ($tipo && $tipo !== 'todos') {
         $db->bind(':tipo', $tipo);
@@ -266,7 +150,6 @@ function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     $db->bind(':offset', $offset);
     $usuarios = $db->resultset();
     
-    // Obtener total para paginación
     $db->query($countQuery);
     if ($tipo && $tipo !== 'todos') {
         $db->bind(':tipo', $tipo);
@@ -276,84 +159,23 @@ function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     return ['usuarios' => $usuarios, 'total' => $total];
 }
 
-// Obtener códigos disponibles
-function getCodigosDisponibles($db, $tipo = null) {
-    $query = "SELECT * FROM vista_codigos_disponibles WHERE usado = FALSE";
-    if ($tipo) {
-        $query .= " AND tipo_plan = :tipo";
-    }
-    $query .= " ORDER BY fecha_creacion DESC";
-    
-    $db->query($query);
-    if ($tipo) {
-        $db->bind(':tipo', $tipo);
-    }
-    
-    return $db->resultset();
-}
-
-// Obtener estadísticas de códigos
-function getEstadisticasCodigos($db) {
-    $db->query("SELECT * FROM vista_estadisticas_codigos");
-    return $db->resultset();
-}
-
-// Obtener suscripciones por vencer
-function getSuscripcionesPorVencer($db, $dias = 7) {
-    $query = "SELECT * FROM vista_suscripciones 
-              WHERE estado_suscripcion_calculado IN ('Por vencer', 'Próximo a vencer') 
-              AND dias_restantes <= :dias 
-              ORDER BY dias_restantes ASC";
-    
-    $db->query($query);
-    $db->bind(':dias', $dias);
-    return $db->resultset();
-}
-
-// Obtener progreso de usuarios
-function getProgresoUsuarios($db) {
-    $db->query("SELECT * FROM vista_progreso_usuarios ORDER BY dias_sin_ir DESC LIMIT 20");
-    return $db->resultset();
-}
-
-// Actualizar estados de suscripciones
-function actualizarEstadosSuscripciones($db) {
-    try {
-        $db->query("CALL ActualizarEstadosSuscripciones()");
-        $db->execute();
-        return true;
-    } catch (Exception $e) {
-        error_log("Error actualizando estados de suscripciones: " . $e->getMessage());
-        return false;
-    }
-}
-
-// Actualizar estados automáticamente
-actualizarEstadosSuscripciones($db);
-
-// Obtener datos para la vista
+// Datos para la vista
 $metrics = getDashboardMetrics($db);
 $tipoFiltro = $_GET['tipo'] ?? 'todos';
 $paginaActual = (int)($_GET['page'] ?? 1);
 $usuariosData = getUsuarios($db, $tipoFiltro, $paginaActual);
 $totalPaginas = ceil($usuariosData['total'] / 10);
 
-// Datos adicionales para el dashboard
-$codigosDisponibles = getCodigosDisponibles($db);
-$estadisticasCodigos = getEstadisticasCodigos($db);
-$suscripcionesPorVencer = getSuscripcionesPorVencer($db);
-$progresoUsuarios = getProgresoUsuarios($db);
-
 $currentUser = gym_get_logged_in_user();
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Panel de Administración - <?php echo SITE_NAME; ?></title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="assets/css/admin.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <link href="assets/css/admin.css" rel="stylesheet" />
 </head>
 <body>
     <header class="header">
@@ -364,7 +186,7 @@ $currentUser = gym_get_logged_in_user();
                     <i class="fas fa-user"></i>
                 </div>
                 <div>
-                    <div><?php echo $currentUser['nombre'] . ' ' . $currentUser['apellido']; ?></div>
+                    <div><?php echo htmlspecialchars($currentUser['nombre'] . ' ' . $currentUser['apellido']); ?></div>
                     <small>Administrador</small>
                 </div>
                 <a href="logout.php" class="btn btn-danger btn-sm">
@@ -379,66 +201,26 @@ $currentUser = gym_get_logged_in_user();
         <div class="metrics-grid">
             <div class="metric-card users">
                 <div class="metric-header">
-                    <div class="metric-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
+                    <div class="metric-icon"><i class="fas fa-users"></i></div>
                 </div>
                 <div class="metric-value"><?php echo number_format($metrics['total_usuarios']); ?></div>
                 <div class="metric-label">Total Usuarios</div>
             </div>
-            
+
             <div class="metric-card new-users">
                 <div class="metric-header">
-                    <div class="metric-icon">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
+                    <div class="metric-icon"><i class="fas fa-user-plus"></i></div>
                 </div>
                 <div class="metric-value"><?php echo number_format($metrics['nuevos_usuarios']); ?></div>
                 <div class="metric-label">Nuevos Este Mes</div>
             </div>
-            
+
             <div class="metric-card active-today">
                 <div class="metric-header">
-                    <div class="metric-icon">
-                        <i class="fas fa-calendar-day"></i>
-                    </div>
+                    <div class="metric-icon"><i class="fas fa-calendar-day"></i></div>
                 </div>
                 <div class="metric-value"><?php echo number_format($metrics['usuarios_hoy']); ?></div>
                 <div class="metric-label">Registros Hoy</div>
-            </div>
-            
-            <div class="metric-card revenue">
-                <div class="metric-header">
-                    <div class="metric-icon">
-                        <i class="fas fa-crown"></i>
-                    </div>
-                </div>
-                <div class="metric-value"><?php echo number_format($metrics['suscripciones_activas']); ?></div>
-                <div class="metric-label">Suscripciones Activas</div>
-            </div>
-        </div>
-
-        <!-- Sección de Códigos -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">Gestión de Códigos</h2>
-                <div class="action-buttons">
-                    <a href="/admin/generarCodigo.php" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Generar Código
-                    </a>
-                    
-                </div>
-            </div>
-            
-            <div class="code-metrics">
-                <div class="metric-small">
-                    <span class="metric-value"><?php echo number_format($metrics['codigos_disponibles']); ?></span>
-                    <span class="metric-label">Códigos Disponibles</span>
-                </div>
-                <div class="metric-small">
-                    <span class="metric-value"><?php echo number_format($metrics['codigos_usados_mes']); ?></span>
-                    <span class="metric-label">Usados Este Mes</span>
-                </div>
             </div>
         </div>
 
@@ -458,7 +240,7 @@ $currentUser = gym_get_logged_in_user();
                     </a>
                 </div>
             </div>
-            
+
             <div class="filters">
                 <label>Filtrar por tipo:</label>
                 <select class="filter-select" onchange="filterUsers(this.value)">
@@ -468,7 +250,7 @@ $currentUser = gym_get_logged_in_user();
                     <option value="admin" <?php echo $tipoFiltro === 'admin' ? 'selected' : ''; ?>>Administradores</option>
                 </select>
             </div>
-            
+
             <div class="table-container">
                 <table class="table">
                     <thead>
@@ -478,7 +260,6 @@ $currentUser = gym_get_logged_in_user();
                             <th>Email</th>
                             <th>Teléfono</th>
                             <th>Tipo</th>
-                            <th>Suscripción</th>
                             <th>Estado</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
@@ -497,43 +278,9 @@ $currentUser = gym_get_logged_in_user();
                                 </span>
                             </td>
                             <td>
-                                <?php if ($usuario['tipo'] === 'cliente'): ?>
-                                    <?php if (!empty($usuario['tipo_suscripcion'])): ?>
-                                        <div class="subscription-info">
-                                            <strong><?php echo htmlspecialchars(gym_format_subscription_type($usuario['tipo_suscripcion'])); ?></strong>
-                                            <?php if (isset($usuario['dias_restantes']) && $usuario['dias_restantes'] !== null): ?>
-                                                <div class="days-remaining">
-                                                    <?php 
-                                                    $dias = intval($usuario['dias_restantes']);
-                                                    $class = $dias > 7 ? 'text-success' : ($dias > 0 ? 'text-warning' : 'text-danger');
-                                                    ?>
-                                                    <span class="<?php echo $class; ?>">
-                                                        <?php echo $dias; ?> días restantes
-                                                    </span>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php else: ?>
-                                        <button class="btn btn-sm btn-success" onclick="openSubscriptionModal(<?php echo $usuario['id']; ?>)">
-                                            <i class="fas fa-plus"></i> Activar
-                                        </button>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <span>N/A</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
                                 <span class="status-badge <?php echo $usuario['activo'] ? 'status-active' : 'status-inactive'; ?>">
                                     <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
                                 </span>
-                                <?php if ($usuario['tipo'] === 'cliente' && !empty($usuario['estado_suscripcion'])): ?>
-                                    <br>
-                                    <span class="subscription-badge 
-                                        <?php echo $usuario['estado_suscripcion'] === 'activa' ? 'subscription-active' : 
-                                            ($usuario['estado_suscripcion'] === 'vencida' ? 'subscription-expired' : 'subscription-pending'); ?>">
-                                        <?php echo ucfirst(htmlspecialchars($usuario['estado_suscripcion'])); ?>
-                                    </span>
-                                <?php endif; ?>
                             </td>
                             <td><?php echo date('d/m/Y', strtotime($usuario['fecha_registro'])); ?></td>
                             <td>
@@ -557,7 +304,7 @@ $currentUser = gym_get_logged_in_user();
                     </tbody>
                 </table>
             </div>
-            
+
             <?php if ($totalPaginas > 1): ?>
             <div class="pagination">
                 <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
@@ -570,6 +317,9 @@ $currentUser = gym_get_logged_in_user();
             <?php endif; ?>
         </div>
     </div>
+</body>
+</html>
+
 
     <!-- Modal para crear usuario -->
     <div id="createUserModal" class="modal">
@@ -629,6 +379,6 @@ $currentUser = gym_get_logged_in_user();
     </div>
 
 
-    <script src="assets/js/admin.js"></script>
+    <script src="/assets/js/admin.js"></script>
 </body>
 </html>

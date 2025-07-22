@@ -10,6 +10,9 @@ $user = new User();
 
 // Obtener todas las rutinas preestablecidas
 $rutinas = $user->obtener_rutinas_preestablecidas();
+
+// Obtener información del usuario actual
+$usuario_actual = $_SESSION['usuario'] ?? ['nombre' => 'Usuario'];
 ?>
 
 <!DOCTYPE html>
@@ -20,14 +23,70 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
     <title>Rutinas Disponibles</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .card-rutina {
-            transition: transform 0.2s;
-            cursor: pointer;
+        /* Imagen de fondo con blur */
+        .bg-gym {
+            background-image: url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: relative;
         }
-        .card-rutina:hover {
+        
+        .bg-gym::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.62);
+            backdrop-filter: blur(2px);
+        }
+        
+        /* Header normal con gradiente */
+        .glass-header {
+            background: rgb(20, 66, 233);
+            position: sticky; /* Cambia esto */
+            top: 0;
+        }
+        
+        /* Efecto vidrio para componentes específicos */
+        .glass-filter {
+            background: rgba(255, 255, 255, 0.49);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.47);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.42);
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Contenido principal sin efecto vidrio */
+        .main-content {
+            background: transparent;
+            margin-top: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .card-rutina {
+            transition: all 0.3s ease;
+            cursor: pointer;
         }
         .badge-categoria {
             background-color: #6c757d;
@@ -54,81 +113,125 @@ $rutinas = $user->obtener_rutinas_preestablecidas();
             object-fit: cover;
             border-radius: 8px;
         }
+        
+        /* Animaciones */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        /* Botón de retorno normal */
+        .btn-back {
+            background: rgba(255, 255, 255, 0.52);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-5px);
+        }
     </style>
 </head>
-<body>
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="display-5">Rutinas Disponibles</h1>
-            <a href="/dashboard.php" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Volver al Dashboard
-            </a>
-        </div>
-
-        <!-- Filtros -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <select id="filtroCategoria" class="form-select">
-                    <option value="">Todas las categorías</option>
-                    <option value="fuerza">Fuerza</option>
-                    <option value="cardio">Cardio</option>
-                    <option value="hiit">HIIT</option>
-                    <option value="funcional">Funcional</option>
-                    <option value="flexibilidad">Flexibilidad</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <select id="filtroObjetivo" class="form-select">
-                    <option value="">Todos los objetivos</option>
-                    <option value="perdida_peso">Pérdida de peso</option>
-                    <option value="ganancia_muscular">Ganancia muscular</option>
-                    <option value="definicion">Definición</option>
-                    <option value="resistencia">Resistencia</option>
-                    <option value="fuerza">Fuerza</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <input type="text" id="buscarRutina" class="form-control" placeholder="Buscar rutina...">
+<body class="bg-gym min-h-screen">
+    <!-- Header normal con gradiente -->
+    <header class="glass-header shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <img src="/assets/images/gym (1).png" alt="Logo" style="height: 65px;" class="me-2">
+                    <h1 class="text-3xl font-bold text-white drop-shadow-lg">Rutinas Disponibles</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard.php" class="btn-back text-white hover:text-blue-100 transition-all duration-300 p-3 ">
+                        <i class="fas fa-arrow-left text-lg me-2"></i>
+                        Volver
+                    </a>
+                </div>
             </div>
         </div>
+    </header>
 
-        <!-- Lista de rutinas -->
-        <div class="row" id="listaRutinas">
-            <?php if (empty($rutinas)): ?>
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No hay rutinas disponibles en este momento.
+    <!-- Contenido principal -->
+    <div class="main-content">
+        <div class="container py-4 animate-fade-in-up">
+            <!-- Filtros con efecto vidrio -->
+            <div class="glass-filter">
+                <div class="row">
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <select id="filtroCategoria" class="form-select">
+                            <option value="">Todas las categorías</option>
+                            <option value="fuerza">Fuerza</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="hiit">HIIT</option>
+                            <option value="funcional">Funcional</option>
+                            <option value="flexibilidad">Flexibilidad</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <select id="filtroObjetivo" class="form-select">
+                            <option value="">Todos los objetivos</option>
+                            <option value="perdida_peso">Pérdida de peso</option>
+                            <option value="ganancia_muscular">Ganancia muscular</option>
+                            <option value="definicion">Definición</option>
+                            <option value="resistencia">Resistencia</option>
+                            <option value="fuerza">Fuerza</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="buscarRutina" class="form-control" placeholder="Buscar rutina...">
                     </div>
                 </div>
-            <?php else: ?>
-                <?php foreach ($rutinas as $rutina): ?>
-                <div class="col-md-6 col-lg-4 mb-4 rutina-card" 
-                     data-categoria="<?php echo strtolower($rutina['categoria']); ?>" 
-                     data-objetivo="<?php echo strtolower($rutina['objetivo']); ?>"
-                     data-nombre="<?php echo strtolower($rutina['titulo']); ?>">
-                    <div class="card h-100 card-rutina" onclick="verDetalleRutina(<?php echo $rutina['id']; ?>)">
-                        <div class="card-body">
-                            <h5 class="card-title"><?php echo htmlspecialchars($rutina['titulo']); ?></h5>
-                            <p class="card-text text-muted"><?php echo htmlspecialchars(substr($rutina['descripcion'], 0, 100) . (strlen($rutina['descripcion']) > 100 ? '...' : '')); ?></p>
-                            
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="badge badge-categoria">
-                                    <i class="fas fa-tag"></i> <?php echo ucfirst($rutina['categoria']); ?>
-                                </span>
-                                <span class="badge badge-objetivo">
-                                    <i class="fas fa-bullseye"></i> <?php echo ucfirst(str_replace('_', ' ', $rutina['objetivo'])); ?>
-                                </span>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between small text-muted">
-                                <span><i class="fas fa-clock"></i> <?php echo $rutina['duracion_minutos']; ?> min</span>
-                                <span><i class="fas fa-dumbbell"></i> <?php echo isset($rutina['total_ejercicios']) ? $rutina['total_ejercicios'] : 0; ?> ejercicios</span>
+            </div>
+
+            <!-- Lista de rutinas -->
+            <div class="row" id="listaRutinas">
+                <?php if (empty($rutinas)): ?>
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay rutinas disponibles en este momento.
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($rutinas as $rutina): ?>
+                    <div class="col-md-6 col-lg-4 mb-4 rutina-card" 
+                         data-categoria="<?php echo strtolower($rutina['categoria']); ?>" 
+                         data-objetivo="<?php echo strtolower($rutina['objetivo']); ?>"
+                         data-nombre="<?php echo strtolower($rutina['titulo']); ?>">
+                        <div class="card h-100 glass-card" onclick="verDetalleRutina(<?php echo $rutina['id']; ?>)">
+                            <div class="card-body text-white">
+                                <h5 class="card-title text-white"><?php echo htmlspecialchars($rutina['titulo']); ?></h5>
+                                <p class="card-text text-light"><?php echo htmlspecialchars(substr($rutina['descripcion'], 0, 100) . (strlen($rutina['descripcion']) > 100 ? '...' : '')); ?></p>
+                                
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge badge-categoria">
+                                        <i class="fas fa-tag"></i> <?php echo ucfirst($rutina['categoria']); ?>
+                                    </span>
+                                    <span class="badge badge-objetivo">
+                                        <i class="fas fa-bullseye"></i> <?php echo ucfirst(str_replace('_', ' ', $rutina['objetivo'])); ?>
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between small text-light">
+                                    <span><i class="fas fa-clock"></i> <?php echo $rutina['duracion_minutos']; ?> min</span>
+                                    <span><i class="fas fa-dumbbell"></i> <?php echo isset($rutina['total_ejercicios']) ? $rutina['total_ejercicios'] : 0; ?> ejercicios</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 

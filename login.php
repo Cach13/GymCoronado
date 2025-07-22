@@ -58,17 +58,35 @@ $alert = gym_get_alert();
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg,rgb(6, 21, 66) 0%,rgb(13, 37, 132) 100%);
+            background: 
+                linear-gradient(rgba(0, 0, 0, 0.5)), /* Opcional: overlay para mejor legibilidad */
+                url('/assets/images/gym.png') no-repeat center center;
+            background-size: cover;
+            background-position: center ; /* Centrado horizontal + 150px desde arriba */
+            background-attachment: fixed;
             min-height: 100vh;
+            margin: 0;
+            padding: 0;
             display: flex;
+            justify-content: center;
             align-items: center;
         }
+
+
         .login-container {
-            background: rgb(198, 201, 205);
+            background: rgba(11, 58, 159, 0.1); /* fondo blanco semi-transparente */
             border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px); /* desenfoque de fondo */
+            -webkit-backdrop-filter: blur(10px); /* soporte para Safari */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* borde blanco semi-transparente */
             overflow: hidden;
         }
+    
+        .form-check-label{
+            color: white;
+        }
+                                     
         .login-form {
             padding: 3rem;
         }
@@ -77,11 +95,11 @@ $alert = gym_get_alert();
             margin-bottom: 2rem;
         }
         .login-header h2 {
-            color: #333;
+            color: rgb(15, 46, 185);
             font-weight: 600;
         }
         .login-header p {
-            color: #666;
+            color: white;
             margin-bottom: 0;
         }
         .form-floating label {
