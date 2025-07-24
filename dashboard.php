@@ -291,7 +291,7 @@ try {
                 </a>
             </div>
             <div class="col-lg-3 col-md-6 mb-3">
-                <a href="registrar_comida.php" class="quick-action-btn">
+                <a href="/user/nutricion/registrar_comida.php" class="quick-action-btn">
                     <div class="text-center">
                         <i class="fas fa-utensils fa-2x mb-2" style="color: #fd7e14;"></i>
                         <h6>Registrar Comida</h6>

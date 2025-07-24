@@ -1,6 +1,6 @@
 -- =============================================
--- BASE DE DATOS PARA GYM APP - VERSIÓN ACTUALIZADA
--- Con sistema de alimentos locales y QR de asistencia
+-- BASE DE DATOS PARA GYM APP - VERSIÓN SIMPLIFICADA
+-- Con sistema de alimentos simplificado y QR de asistencia
 -- =============================================
 
 CREATE DATABASE IF NOT EXISTS gym;
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS medidas (
 );
 
 -- =============================================
--- TABLA DE RACHAS - ACTUALIZADA
+-- TABLA DE RACHAS
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS rachas (
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS rachas (
     fecha DATE NOT NULL,
     activa BOOLEAN DEFAULT TRUE,
     tipo_actividad ENUM('gym', 'rutina_casa', 'cardio') DEFAULT 'gym',
-    consecutiva BOOLEAN DEFAULT TRUE, -- Si mantiene la racha consecutiva
+    consecutiva BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_date (id_usuario, fecha),
     INDEX idx_usuario_activa (id_usuario, activa),
@@ -130,85 +130,64 @@ CREATE TABLE IF NOT EXISTS rachas (
 );
 
 -- =============================================
--- ETIQUETAS PARA ALIMENTOS
+-- GRUPOS ALIMENTICIOS - SIMPLIFICADO
 -- =============================================
 
-CREATE TABLE IF NOT EXISTS etiquetas_alimentos (
+CREATE TABLE IF NOT EXISTS grupos_alimentos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(50) UNIQUE NOT NULL,
     descripcion TEXT,
-    color VARCHAR(7) DEFAULT '#007bff', -- Color hexadecimal
-    activa BOOLEAN DEFAULT TRUE,
+    color VARCHAR(7) DEFAULT '#007bff', -- Color hexadecimal para UI
+    activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_activa (activa)
+    INDEX idx_activo (activo)
 );
 
 -- =============================================
--- BASE DE DATOS DE ALIMENTOS LOCAL
+-- BASE DE DATOS DE ALIMENTOS - SIMPLIFICADA
 -- =============================================
 
-CREATE TABLE IF NOT EXISTS alimentos_base (
+CREATE TABLE IF NOT EXISTS alimentos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(200) NOT NULL,
     marca VARCHAR(100) NULL,
-    codigo_barras VARCHAR(50) NULL,
-    -- Macros por 100g/ml
-    calorias_100g DECIMAL(7,2) NOT NULL,
-    proteinas_100g DECIMAL(6,2) DEFAULT 0,
-    carbohidratos_100g DECIMAL(6,2) DEFAULT 0,
-    grasas_100g DECIMAL(6,2) DEFAULT 0,
-    fibra_100g DECIMAL(6,2) DEFAULT 0,
-    sodio_100g DECIMAL(8,2) DEFAULT 0, -- en mg
-    azucares_100g DECIMAL(6,2) DEFAULT 0,
-    -- Tipo de medida
-    tipo_medida ENUM('gramos', 'mililitros', 'unidades') DEFAULT 'gramos',
-    peso_unidad DECIMAL(6,2) NULL, -- Para cuando sea por unidades
-    -- Información adicional
-    descripcion TEXT,
-    ingredientes TEXT,
-    -- Control de uso
-    veces_usado INT DEFAULT 0,
-    ultima_busqueda TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    verificado BOOLEAN DEFAULT FALSE, -- Si fue verificado por admin
+    id_grupo INT NOT NULL,
+    -- Macros por 100g o 100ml
+    calorias_100 DECIMAL(7,2) NOT NULL,
+    proteinas_100 DECIMAL(6,2) DEFAULT 0,
+    carbohidratos_100 DECIMAL(6,2) DEFAULT 0,
+    grasas_100 DECIMAL(6,2) DEFAULT 0,
+    fibra_100 DECIMAL(6,2) DEFAULT 0,
+    -- Tipo de medida base
+    tipo_medida ENUM('gramos', 'mililitros') DEFAULT 'gramos',
+    -- Control y estadísticas
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     creado_por INT NULL,
+    FOREIGN KEY (id_grupo) REFERENCES grupos_alimentos(id),
     FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
     INDEX idx_nombre (nombre),
-    INDEX idx_codigo_barras (codigo_barras),
-    INDEX idx_uso (veces_usado DESC, ultima_busqueda DESC),
+    INDEX idx_grupo (id_grupo),
     INDEX idx_activo (activo),
-    INDEX idx_verificado (verificado)
+    INDEX idx_busqueda (nombre, marca)
 );
 
 -- =============================================
--- RELACIÓN ALIMENTOS CON ETIQUETAS
+-- ALIMENTOS MÁS CONSUMIDOS POR USUARIO
 -- =============================================
 
-CREATE TABLE IF NOT EXISTS alimento_etiquetas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_alimento INT NOT NULL,
-    id_etiqueta INT NOT NULL,
-    FOREIGN KEY (id_alimento) REFERENCES alimentos_base(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_etiqueta) REFERENCES etiquetas_alimentos(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_alimento_etiqueta (id_alimento, id_etiqueta),
-    INDEX idx_alimento (id_alimento),
-    INDEX idx_etiqueta (id_etiqueta)
-);
-
--- =============================================
--- ALIMENTOS FAVORITOS POR USUARIO
--- =============================================
-
-CREATE TABLE IF NOT EXISTS alimentos_favoritos (
+CREATE TABLE IF NOT EXISTS usuario_alimentos_frecuentes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
     id_alimento INT NOT NULL,
-    fecha_agregado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    veces_consumido INT DEFAULT 1,
+    ultima_vez DATE,
+    fecha_primer_consumo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_alimento) REFERENCES alimentos_base(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_alimento) REFERENCES alimentos(id) ON DELETE CASCADE,
     UNIQUE KEY unique_usuario_alimento (id_usuario, id_alimento),
-    INDEX idx_usuario (id_usuario)
+    INDEX idx_usuario_frecuencia (id_usuario, veces_consumido DESC),
+    INDEX idx_usuario_reciente (id_usuario, ultima_vez DESC)
 );
 
 -- =============================================
@@ -287,7 +266,7 @@ CREATE TABLE IF NOT EXISTS tips (
 );
 
 -- =============================================
--- REGISTRO DE COMIDAS - ACTUALIZADO
+-- REGISTRO DE COMIDAS - SIMPLIFICADO
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS registro_comidas (
@@ -296,17 +275,11 @@ CREATE TABLE IF NOT EXISTS registro_comidas (
     id_alimento INT NOT NULL,
     fecha DATE NOT NULL,
     comida ENUM('desayuno', 'almuerzo', 'cena', 'snack1', 'snack2') NOT NULL,
-    cantidad DECIMAL(8,2) NOT NULL, -- Cantidad en gramos/ml/unidades
-    tipo_medida ENUM('gramos', 'mililitros', 'unidades') DEFAULT 'gramos',
-    -- Cálculos automáticos basados en la cantidad
-    calorias_totales DECIMAL(8,2) NOT NULL,
-    proteinas_totales DECIMAL(7,2) DEFAULT 0,
-    carbohidratos_totales DECIMAL(7,2) DEFAULT 0,
-    grasas_totales DECIMAL(7,2) DEFAULT 0,
-    fibra_totales DECIMAL(7,2) DEFAULT 0,
+    cantidad DECIMAL(8,2) NOT NULL, -- Cantidad en gramos o ml
+    -- Los cálculos se harán en el frontend con JS
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
-    FOREIGN KEY (id_alimento) REFERENCES alimentos_base(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_alimento) REFERENCES alimentos(id) ON DELETE CASCADE,
     INDEX idx_usuario_fecha (id_usuario, fecha),
     INDEX idx_alimento (id_alimento)
 );
@@ -368,156 +341,7 @@ CREATE TABLE IF NOT EXISTS ranking_asistencias (
 );
 
 -- =============================================
--- VISTAS ÚTILES
--- =============================================
-
--- Vista de progreso de usuarios con asistencias
-CREATE VIEW vista_progreso_usuarios AS
-SELECT 
-    u.id,
-    u.nombre,
-    u.apellido,
-    u.email,
-    u.telefono,
-    u.activo,
-    u.puede_acceder,
-    u.fecha_registro,
-    u.objetivo,
-    u.racha_actual,
-    u.racha_maxima,
-    COUNT(DISTINCT a.fecha) as dias_asistencia,
-    MAX(a.fecha) as ultima_asistencia,
-    CASE 
-        WHEN MAX(a.fecha) IS NULL THEN 999
-        ELSE DATEDIFF(CURDATE(), MAX(a.fecha))
-    END as dias_sin_ir,
-    COUNT(DISTINCT ur.id_rutina) as rutinas_asignadas,
-    -- Marcadores de logros
-    CASE 
-        WHEN COUNT(DISTINCT a.fecha) >= 7 THEN TRUE 
-        ELSE FALSE 
-    END as logro_7_dias,
-    CASE 
-        WHEN COUNT(DISTINCT a.fecha) >= 30 THEN TRUE 
-        ELSE FALSE 
-    END as logro_30_dias
-FROM usuarios u
-LEFT JOIN asistencias a ON u.id = a.id_usuario
-LEFT JOIN usuario_rutinas ur ON u.id = ur.id_usuario AND ur.activa = TRUE
-WHERE u.tipo = 'cliente'
-GROUP BY u.id, u.nombre, u.apellido, u.email, u.telefono, u.activo, u.puede_acceder, u.fecha_registro, u.objetivo, u.racha_actual, u.racha_maxima;
-
--- Vista de estadísticas de usuarios
-CREATE VIEW vista_estadisticas_usuarios AS
-SELECT 
-    u.id,
-    u.nombre,
-    u.apellido,
-    u.objetivo,
-    u.activo,
-    u.racha_actual,
-    u.racha_maxima,
-    u.fecha_registro,
-    COUNT(DISTINCT a.fecha) as total_asistencias,
-    COUNT(DISTINCT rc.fecha) as dias_con_comidas,
-    COUNT(DISTINCT m.id) as total_mediciones,
-    CASE 
-        WHEN COUNT(DISTINCT a.fecha) = 0 THEN 'Inactivo'
-        WHEN COUNT(DISTINCT a.fecha) >= 20 THEN 'Muy activo'
-        WHEN COUNT(DISTINCT a.fecha) >= 10 THEN 'Activo'
-        ELSE 'Poco activo'
-    END as nivel_actividad
-FROM usuarios u
-LEFT JOIN asistencias a ON u.id = a.id_usuario
-LEFT JOIN registro_comidas rc ON u.id = rc.id_usuario
-LEFT JOIN medidas m ON u.id = m.id_usuario
-WHERE u.tipo = 'cliente'
-GROUP BY u.id, u.nombre, u.apellido, u.objetivo, u.activo, u.racha_actual, u.racha_maxima, u.fecha_registro;
-
--- Vista de alimentos más usados
-CREATE VIEW vista_alimentos_populares AS
-SELECT 
-    ab.id,
-    ab.nombre,
-    ab.marca,
-    ab.calorias_100g,
-    ab.proteinas_100g,
-    ab.carbohidratos_100g,
-    ab.grasas_100g,
-    ab.veces_usado,
-    ab.verificado,
-    GROUP_CONCAT(ea.nombre SEPARATOR ', ') as etiquetas,
-    COUNT(DISTINCT rc.id_usuario) as usuarios_que_lo_usan
-FROM alimentos_base ab
-LEFT JOIN alimento_etiquetas ae ON ab.id = ae.id_alimento
-LEFT JOIN etiquetas_alimentos ea ON ae.id_etiqueta = ea.id
-LEFT JOIN registro_comidas rc ON ab.id = rc.id_alimento
-WHERE ab.activo = TRUE
-GROUP BY ab.id, ab.nombre, ab.marca, ab.calorias_100g, ab.proteinas_100g, ab.carbohidratos_100g, ab.grasas_100g, ab.veces_usado, ab.verificado
-ORDER BY ab.veces_usado DESC, usuarios_que_lo_usan DESC;
-
--- Vista de rutinas populares
-CREATE VIEW vista_rutinas_populares AS
-SELECT 
-    r.id,
-    r.titulo,
-    r.categoria,
-    r.objetivo,
-    r.duracion_minutos,
-    r.activa,
-    e.nombre as entrenador,
-    COUNT(ur.id_usuario) as usuarios_asignados,
-    r.fecha_creacion
-FROM rutinas r
-JOIN usuarios e ON r.id_entrenador = e.id
-LEFT JOIN usuario_rutinas ur ON r.id = ur.id_rutina AND ur.activa = TRUE
-GROUP BY r.id, r.titulo, r.categoria, r.objetivo, r.duracion_minutos, r.activa, e.nombre, r.fecha_creacion
-ORDER BY usuarios_asignados DESC;
-
--- Vista de calendario de asistencias
-CREATE VIEW vista_calendario_asistencias AS
-SELECT 
-    a.id_usuario,
-    u.nombre,
-    u.apellido,
-    a.fecha,
-    a.hora_entrada,
-    a.hora_salida,
-    a.metodo_registro,
-    a.duracion_minutos,
-    DAYNAME(a.fecha) as dia_semana,
-    WEEK(a.fecha) as semana_año,
-    MONTH(a.fecha) as mes,
-    YEAR(a.fecha) as año
-FROM asistencias a
-JOIN usuarios u ON a.id_usuario = u.id
-ORDER BY a.fecha DESC, a.hora_entrada DESC;
-
--- =============================================
--- FUNCIONES ÚTILES
--- =============================================
-
--- Función para calcular calorias basadas en cantidad
-DELIMITER //
-CREATE FUNCTION calcular_calorias(cantidad DECIMAL(8,2), calorias_100g DECIMAL(7,2), tipo_medida ENUM('gramos', 'mililitros', 'unidades'), peso_unidad DECIMAL(6,2))
-RETURNS DECIMAL(8,2)
-READS SQL DATA
-DETERMINISTIC
-BEGIN
-    DECLARE calorias_totales DECIMAL(8,2);
-    
-    IF tipo_medida = 'unidades' AND peso_unidad IS NOT NULL THEN
-        SET calorias_totales = (cantidad * peso_unidad * calorias_100g) / 100;
-    ELSE
-        SET calorias_totales = (cantidad * calorias_100g) / 100;
-    END IF;
-    
-    RETURN calorias_totales;
-END//
-DELIMITER ;
-
--- =============================================
--- PROCEDIMIENTOS ALMACENADOS ÚTILES
+-- PROCEDIMIENTOS ALMACENADOS BÁSICOS
 -- =============================================
 
 -- Procedimiento para registrar asistencia y actualizar racha
@@ -577,186 +401,9 @@ BEGIN
 END//
 DELIMITER ;
 
--- Procedimiento para actualizar estadísticas diarias
-DELIMITER //
-CREATE PROCEDURE ActualizarEstadisticasDiarias()
-BEGIN
-    INSERT INTO estadisticas_gym (
-        fecha, 
-        total_asistencias, 
-        nuevos_registros, 
-        rutinas_completadas,
-        usuarios_activos,
-        comidas_registradas,
-        asistencias_qr_personal,
-        asistencias_qr_gimnasio,
-        asistencias_admin
-    ) VALUES (
-        CURDATE(),
-        (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE()),
-        (SELECT COUNT(*) FROM usuarios WHERE DATE(fecha_registro) = CURDATE()),
-        (SELECT COUNT(DISTINCT id_usuario) FROM usuario_rutinas WHERE DATE(fecha_asignacion) = CURDATE()),
-        (SELECT COUNT(*) FROM usuarios WHERE activo = TRUE AND tipo = 'cliente'),
-        (SELECT COUNT(*) FROM registro_comidas WHERE fecha = CURDATE()),
-        (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND metodo_registro = 'qr_personal'),
-        (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND metodo_registro = 'qr_gimnasio'),
-        (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND metodo_registro = 'admin_manual')
-    ) ON DUPLICATE KEY UPDATE
-        total_asistencias = VALUES(total_asistencias),
-        nuevos_registros = VALUES(nuevos_registros),
-        rutinas_completadas = VALUES(rutinas_completadas),
-        usuarios_activos = VALUES(usuarios_activos),
-        comidas_registradas = VALUES(comidas_registradas),
-        asistencias_qr_personal = VALUES(asistencias_qr_personal),
-        asistencias_qr_gimnasio = VALUES(asistencias_qr_gimnasio),
-        asistencias_admin = VALUES(asistencias_admin);
-END//
-DELIMITER ;
-
--- Procedimiento para actualizar ranking mensual
-DELIMITER //
-CREATE PROCEDURE ActualizarRankingMensual()
-BEGIN
-    DECLARE v_mes INT DEFAULT MONTH(CURDATE());
-    DECLARE v_año INT DEFAULT YEAR(CURDATE());
-    
-    -- Limpiar ranking del mes actual
-    DELETE FROM ranking_asistencias WHERE mes = v_mes AND año = v_año;
-    
-    -- Insertar nuevos datos
-    INSERT INTO ranking_asistencias (id_usuario, mes, año, total_asistencias, racha_maxima_mes)
-    SELECT 
-        u.id,
-        v_mes,
-        v_año,
-        COUNT(DISTINCT a.fecha) as total_asistencias,
-        u.racha_maxima
-    FROM usuarios u
-    LEFT JOIN asistencias a ON u.id = a.id_usuario 
-        AND MONTH(a.fecha) = v_mes 
-        AND YEAR(a.fecha) = v_año
-    WHERE u.tipo = 'cliente'
-    GROUP BY u.id, u.racha_maxima;
-    
-    -- Actualizar posiciones
-    SET @position = 0;
-    UPDATE ranking_asistencias 
-    SET posicion_ranking = (@position := @position + 1)
-    WHERE mes = v_mes AND año = v_año
-    ORDER BY total_asistencias DESC, racha_maxima_mes DESC;
-    
-END//
-DELIMITER ;
-
 -- =============================================
--- DATOS INICIALES
+-- TRIGGERS BÁSICOS
 -- =============================================
-
--- Generar QR único para gimnasio
-INSERT INTO configuracion_qr (qr_gimnasio, nombre_gym, activo) VALUES 
-('GYM_QR_' || UNIX_TIMESTAMP(), 'Mi Gimnasio', TRUE);
-
--- Insertar usuario admin con QR
-INSERT INTO usuarios (email, password, nombre, apellido, tipo, qr_code) VALUES 
-('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin', 'ADMIN_QR_' || UNIX_TIMESTAMP())
-ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
-
--- Insertar etiquetas de alimentos
-INSERT INTO etiquetas_alimentos (nombre, descripcion, color) VALUES 
-('Frutas', 'Frutas frescas y naturales', '#28a745'),
-('Verduras', 'Vegetales y hortalizas', '#28a745'),
-('Proteínas', 'Carnes, pescados y lácteos', '#dc3545'),
-('Cereales', 'Granos y cereales', '#ffc107'),
-('Legumbres', 'Frijoles, lentejas y garbanzos', '#6f42c1'),
-('Procesados', 'Alimentos procesados', '#fd7e14'),
-('Bebidas', 'Líquidos y bebidas', '#17a2b8'),
-('Snacks', 'Botanas y aperitivos', '#6c757d'),
-('Lácteos', 'Productos lácteos', '#e83e8c'),
-('Dulces', 'Azúcares y dulces', '#20c997');
-
--- Insertar algunos alimentos base
-INSERT INTO alimentos_base (nombre, calorias_100g, proteinas_100g, carbohidratos_100g, grasas_100g, fibra_100g, tipo_medida, verificado) VALUES 
-('Pechuga de pollo', 165, 31, 0, 3.6, 0, 'gramos', TRUE),
-('Arroz blanco cocido', 130, 2.7, 28, 0.3, 0.4, 'gramos', TRUE),
-('Plátano', 89, 1.1, 23, 0.3, 2.6, 'gramos', TRUE),
-('Huevo entero', 155, 13, 1.1, 11, 0, 'unidades', TRUE),
-('Avena', 389, 16.9, 66, 6.9, 10.6, 'gramos', TRUE),
-('Leche entera', 61, 3.2, 4.8, 3.2, 0, 'mililitros', TRUE),
-('Manzana', 52, 0.3, 14, 0.2, 2.4, 'gramos', TRUE),
-('Salmón', 208, 20, 0, 12, 0, 'gramos', TRUE),
-('Brócoli', 34, 2.8, 7, 0.4, 2.6, 'gramos', TRUE),
-('Almendras', 579, 21, 22, 50, 12, 'gramos', TRUE),
-('Yogurt griego', 59, 10, 3.6, 0.4, 0, 'gramos', TRUE),
-('Pasta cocida', 131, 5, 25, 1.1, 1.8, 'gramos', TRUE),
-('Atún en agua', 116, 25, 0, 0.8, 0, 'gramos', TRUE),
-('Pan integral', 247, 13, 41, 4.2, 7, 'gramos', TRUE),
-('Frijoles negros', 132, 8.9, 23, 0.5, 8.7, 'gramos', TRUE);
-
--- Asignar etiquetas a alimentos
-INSERT INTO alimento_etiquetas (id_alimento, id_etiqueta) VALUES 
--- Proteínas
-(1, 3), -- Pollo -> Proteínas
-(8, 3), -- Salmón -> Proteínas
-(4, 3), -- Huevo -> Proteínas
-(13, 3), -- Atún -> Proteínas
-(11, 9), -- Yogurt -> Lácteos
-(6, 9), -- Leche -> Lácteos
--- Frutas
-(3, 1), -- Plátano -> Frutas
-(7, 1), -- Manzana -> Frutas
--- Verduras
-(9, 2), -- Brócoli -> Verduras
--- Cereales
-(2, 4), -- Arroz -> Cereales
-(5, 4), -- Avena -> Cereales
-(12, 4), -- Pasta -> Cereales
-(14, 4), -- Pan -> Cereales
--- Legumbres
-(15, 5), -- Frijoles -> Legumbres
--- Otros
-(10, 8); -- Almendras -> Snacks
-
--- Insertar algunos tips de ejemplo
-INSERT INTO tips (titulo, contenido, categoria, id_autor) VALUES 
-('Hidratación esencial', 'Toma al menos 8 vasos de agua al día. Tu rendimiento mejora un 25% con buena hidratación.', 'general', 1),
-('Proteína post-entreno', 'Consume proteína dentro de los 30 minutos después de entrenar para máxima recuperación.', 'nutricion', 1),
-('Descanso entre series', 'Para fuerza: 2-3 min. Para hipertrofia: 1-2 min. Para resistencia: 30-60 seg.', 'ejercicio', 1),
-('Mentalidad positiva', 'Cada día en el gym es una victoria. No importa qué tan pequeño sea el progreso.', 'mentalidad', 1),
-('Importancia del sueño', 'Dormir 7-8 horas es crucial para la recuperación muscular y el rendimiento.', 'recovery', 1),
-('Registro de asistencia', 'Escanea tu QR personal o el del gimnasio para registrar tu asistencia y mantener tu racha.', 'general', 1),
-('Alimentación balanceada', 'Registra todas tus comidas para tener un control completo de tus macronutrientes.', 'nutricion', 1);
-
--- Insertar algunos ejercicios preestablecidos
-INSERT INTO ejercicios_preestablecidos (nombre, grupo_muscular, series, repeticiones, tiempo_descanso, instrucciones, dificultad, equipamiento_necesario) VALUES
-('Press de banca', 'pecho', 3, '8-12', '2-3 min', 'Mantén los pies firmes en el suelo, baja la barra hasta el pecho controladamente.', 'intermedio', 'Banca, barra, discos'),
-('Sentadillas', 'piernas', 3, '12-15', '2-3 min', 'Baja hasta que los muslos estén paralelos al suelo, mantén la espalda recta.', 'principiante', 'Ninguno/Barra'),
-('Dominadas', 'espalda', 3, '6-10', '2-3 min', 'Cuelga con los brazos extendidos, sube hasta que la barbilla pase la barra.', 'avanzado', 'Barra de dominadas'),
-('Plancha', 'core', 3, '30-60 seg', '1-2 min', 'Mantén el cuerpo recto como una tabla, contrae el abdomen.', 'principiante', 'Ninguno'),
-('Burpees', 'fullbody', 3, '8-12', '1-2 min', 'Combinación de sentadilla, plancha, flexión y salto.', 'avanzado', 'Ninguno'),
-('Press militar', 'hombros', 3, '8-10', '2-3 min', 'Mantén el core firme, presiona la barra desde los hombros hacia arriba.', 'intermedio', 'Barra, discos'),
-('Peso muerto', 'espalda', 3, '6-8', '3-4 min', 'Mantén la espalda recta, levanta la barra desde el suelo hasta la cadera.', 'avanzado', 'Barra, discos'),
-('Flexiones', 'pecho', 3, '10-15', '1-2 min', 'Mantén el cuerpo recto, baja hasta casi tocar el suelo.', 'principiante', 'Ninguno');
-
--- Insertar estadísticas iniciales
-INSERT INTO estadisticas_gym (fecha, total_asistencias, nuevos_registros, rutinas_completadas, usuarios_activos, comidas_registradas, asistencias_qr_personal, asistencias_qr_gimnasio, asistencias_admin) VALUES 
-(CURDATE(), 0, 1, 0, 1, 0, 0, 0, 0);
-
--- =============================================
--- TRIGGERS ÚTILES
--- =============================================
-
--- Trigger para actualizar contador de uso en alimentos
-DELIMITER //
-CREATE TRIGGER actualizar_uso_alimento
-AFTER INSERT ON registro_comidas
-FOR EACH ROW
-BEGIN
-    UPDATE alimentos_base 
-    SET veces_usado = veces_usado + 1,
-        ultima_busqueda = CURRENT_TIMESTAMP
-    WHERE id = NEW.id_alimento;
-END//
-DELIMITER ;
 
 -- Trigger para generar QR único al crear usuario
 DELIMITER //
@@ -770,172 +417,96 @@ BEGIN
 END//
 DELIMITER ;
 
--- Trigger para actualizar peso de unidades en alimentos
+-- Trigger para actualizar estadísticas de alimentos consumidos
 DELIMITER //
-CREATE TRIGGER actualizar_peso_unidad
-BEFORE INSERT ON alimentos_base
+CREATE TRIGGER actualizar_alimento_frecuente
+AFTER INSERT ON registro_comidas
 FOR EACH ROW
 BEGIN
-    -- Asignar peso promedio para algunos alimentos comunes por unidad
-    IF NEW.tipo_medida = 'unidades' AND NEW.peso_unidad IS NULL THEN
-        CASE 
-            WHEN NEW.nombre LIKE '%huevo%' THEN SET NEW.peso_unidad = 60;
-            WHEN NEW.nombre LIKE '%manzana%' THEN SET NEW.peso_unidad = 182;
-            WHEN NEW.nombre LIKE '%plátano%' THEN SET NEW.peso_unidad = 118;
-            WHEN NEW.nombre LIKE '%naranja%' THEN SET NEW.peso_unidad = 154;
-            WHEN NEW.nombre LIKE '%pan%' THEN SET NEW.peso_unidad = 30;
-            WHEN NEW.nombre LIKE '%tortilla%' THEN SET NEW.peso_unidad = 25;
-            ELSE SET NEW.peso_unidad = 100; -- Valor por defecto
-        END CASE;
-    END IF;
+    INSERT INTO usuario_alimentos_frecuentes (id_usuario, id_alimento, veces_consumido, ultima_vez)
+    VALUES (NEW.id_usuario, NEW.id_alimento, 1, NEW.fecha)
+    ON DUPLICATE KEY UPDATE 
+        veces_consumido = veces_consumido + 1,
+        ultima_vez = NEW.fecha;
 END//
 DELIMITER ;
 
 -- =============================================
--- EVENTOS AUTOMÁTICOS
+-- DATOS INICIALES
 -- =============================================
 
--- Evento para actualizar estadísticas diarias
-CREATE EVENT IF NOT EXISTS actualizar_estadisticas_diarias
-ON SCHEDULE EVERY 1 DAY
-STARTS CURRENT_TIMESTAMP
-DO
-CALL ActualizarEstadisticasDiarias();
+-- Generar QR único para gimnasio
+INSERT INTO configuracion_qr (qr_gimnasio, nombre_gym, activo) VALUES 
+(CONCAT('GYM_QR_', UNIX_TIMESTAMP()), 'Mi Gimnasio', TRUE);
 
--- Evento para actualizar ranking mensual
-CREATE EVENT IF NOT EXISTS actualizar_ranking_mensual
-ON SCHEDULE EVERY 1 DAY
-STARTS CURRENT_TIMESTAMP
-DO
-CALL ActualizarRankingMensual();
+-- Insertar usuario admin con QR
+INSERT INTO usuarios (email, password, nombre, apellido, tipo, qr_code) VALUES 
+('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin', CONCAT('ADMIN_QR_', UNIX_TIMESTAMP()));
 
--- Evento para limpiar rachas inactivas (más de 2 días sin asistir)
-CREATE EVENT IF NOT EXISTS limpiar_rachas_inactivas
-ON SCHEDULE EVERY 1 DAY
-STARTS CURRENT_TIMESTAMP
-DO
-UPDATE usuarios u
-LEFT JOIN asistencias a ON u.id = a.id_usuario AND a.fecha >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)
-SET u.racha_actual = 0
-WHERE u.tipo = 'cliente' AND a.id_usuario IS NULL AND u.racha_actual > 0;
+-- Insertar grupos de alimentos
+INSERT INTO grupos_alimentos (nombre, descripcion, color) VALUES 
+('Frutas', 'Frutas frescas y naturales', '#28a745'),
+('Verduras', 'Vegetales y hortalizas', '#28a745'),
+('Proteínas', 'Carnes, pescados, huevos y lácteos', '#dc3545'),
+('Cereales', 'Granos, cereales y tubérculos', '#ffc107'),
+('Legumbres', 'Frijoles, lentejas y garbanzos', '#6f42c1'),
+('Lácteos', 'Productos lácteos', '#e83e8c'),
+('Grasas', 'Aceites, frutos secos y semillas', '#fd7e14'),
+('Bebidas', 'Líquidos y bebidas', '#17a2b8'),
+('Procesados', 'Alimentos procesados', '#6c757d'),
+('Dulces', 'Azúcares y dulces', '#20c997');
 
--- =============================================
--- PROCEDIMIENTOS ADICIONALES
--- =============================================
+-- Insertar alimentos básicos (ejemplos)
+INSERT INTO alimentos (nombre, marca, id_grupo, calorias_100, proteinas_100, carbohidratos_100, grasas_100, fibra_100, tipo_medida) VALUES 
+('Pechuga de pollo', NULL, 3, 165, 31, 0, 3.6, 0, 'gramos'),
+('Arroz blanco cocido', NULL, 4, 130, 2.7, 28, 0.3, 0.4, 'gramos'),
+('Plátano', NULL, 1, 89, 1.1, 23, 0.3, 2.6, 'gramos'),
+('Huevo entero', NULL, 3, 155, 13, 1.1, 11, 0, 'gramos'),
+('Avena', NULL, 4, 389, 16.9, 66, 6.9, 10.6, 'gramos'),
+('Leche entera', NULL, 6, 61, 3.2, 4.8, 3.2, 0, 'mililitros'),
+('Manzana', NULL, 1, 52, 0.3, 14, 0.2, 2.4, 'gramos'),
+('Salmón', NULL, 3, 208, 20, 0, 12, 0, 'gramos'),
+('Brócoli', NULL, 2, 34, 2.8, 7, 0.4, 2.6, 'gramos'),
+('Almendras', NULL, 7, 579, 21, 22, 50, 12, 'gramos'),
+('Yogurt griego', NULL, 6, 59, 10, 3.6, 0.4, 0, 'gramos'),
+('Pasta cocida', NULL, 4, 131, 5, 25, 1.1, 1.8, 'gramos'),
+('Atún en agua', NULL, 3, 116, 25, 0, 0.8, 0, 'gramos'),
+('Pan integral', NULL, 4, 247, 13, 41, 4.2, 7, 'gramos'),
+('Frijoles negros', NULL, 5, 132, 8.9, 23, 0.5, 8.7, 'gramos'),
+('Agua', NULL, 8, 0, 0, 0, 0, 0, 'mililitros'),
+('Aceite de oliva', NULL, 7, 884, 0, 0, 100, 0, 'mililitros'),
+('Espinacas', NULL, 2, 23, 2.9, 3.6, 0.4, 2.2, 'gramos'),
+('Quinoa cocida', NULL, 4, 120, 4.4, 22, 1.9, 2.8, 'gramos'),
+('Pavo', NULL, 3, 189, 29, 0, 7.4, 0, 'gramos');
 
--- Procedimiento para obtener top usuarios del mes
-DELIMITER //
-CREATE PROCEDURE ObtenerTopUsuarios(IN p_limite INT)
-BEGIN
-    SELECT 
-        u.id,
-        u.nombre,
-        u.apellido,
-        u.racha_actual,
-        u.racha_maxima,
-        COUNT(DISTINCT a.fecha) as asistencias_mes,
-        RANK() OVER (ORDER BY COUNT(DISTINCT a.fecha) DESC, u.racha_maxima DESC) as posicion
-    FROM usuarios u
-    LEFT JOIN asistencias a ON u.id = a.id_usuario 
-        AND MONTH(a.fecha) = MONTH(CURDATE())
-        AND YEAR(a.fecha) = YEAR(CURDATE())
-    WHERE u.tipo = 'cliente' AND u.activo = TRUE
-    GROUP BY u.id, u.nombre, u.apellido, u.racha_actual, u.racha_maxima
-    ORDER BY asistencias_mes DESC, u.racha_maxima DESC
-    LIMIT p_limite;
-END//
-DELIMITER ;
+-- Insertar tips básicos
+INSERT INTO tips (titulo, contenido, categoria, id_autor) VALUES 
+('Hidratación esencial', 'Toma al menos 8 vasos de agua al día. Tu rendimiento mejora significativamente con buena hidratación.', 'general', 1),
+('Proteína post-entreno', 'Consume proteína dentro de los 30 minutos después de entrenar para máxima recuperación muscular.', 'nutricion', 1),
+('Descanso entre series', 'Para fuerza: 2-3 min. Para hipertrofia: 1-2 min. Para resistencia: 30-60 seg.', 'ejercicio', 1),
+('Mentalidad positiva', 'Cada día en el gym es una victoria. No importa qué tan pequeño sea el progreso.', 'mentalidad', 1),
+('Importancia del sueño', 'Dormir 7-8 horas es crucial para la recuperación muscular y el rendimiento óptimo.', 'recovery', 1);
 
--- Procedimiento para buscar alimentos
-DELIMITER //
-CREATE PROCEDURE BuscarAlimentos(
-    IN p_termino VARCHAR(200),
-    IN p_etiqueta_id INT,
-    IN p_limite INT
-)
-BEGIN
-    SELECT DISTINCT
-        ab.id,
-        ab.nombre,
-        ab.marca,
-        ab.calorias_100g,
-        ab.proteinas_100g,
-        ab.carbohidratos_100g,
-        ab.grasas_100g,
-        ab.fibra_100g,
-        ab.tipo_medida,
-        ab.peso_unidad,
-        ab.veces_usado,
-        ab.verificado,
-        GROUP_CONCAT(ea.nombre SEPARATOR ', ') as etiquetas
-    FROM alimentos_base ab
-    LEFT JOIN alimento_etiquetas ae ON ab.id = ae.id_alimento
-    LEFT JOIN etiquetas_alimentos ea ON ae.id_etiqueta = ea.id
-    WHERE ab.activo = TRUE
-    AND (
-        p_termino IS NULL OR 
-        ab.nombre LIKE CONCAT('%', p_termino, '%') OR
-        ab.marca LIKE CONCAT('%', p_termino, '%')
-    )
-    AND (p_etiqueta_id IS NULL OR ae.id_etiqueta = p_etiqueta_id)
-    GROUP BY ab.id, ab.nombre, ab.marca, ab.calorias_100g, ab.proteinas_100g, ab.carbohidratos_100g, ab.grasas_100g, ab.fibra_100g, ab.tipo_medida, ab.peso_unidad, ab.veces_usado, ab.verificado
-    ORDER BY ab.veces_usado DESC, ab.verificado DESC
-    LIMIT p_limite;
-END//
-DELIMITER ;
+-- Insertar ejercicios básicos
+INSERT INTO ejercicios_preestablecidos (nombre, grupo_muscular, series, repeticiones, tiempo_descanso, instrucciones, dificultad, equipamiento_necesario) VALUES
+('Press de banca', 'pecho', 3, '8-12', '2-3 min', 'Mantén los pies firmes en el suelo, baja la barra hasta el pecho controladamente.', 'intermedio', 'Banca, barra, discos'),
+('Sentadillas', 'piernas', 3, '12-15', '2-3 min', 'Baja hasta que los muslos estén paralelos al suelo, mantén la espalda recta.', 'principiante', 'Ninguno/Barra'),
+('Dominadas', 'espalda', 3, '6-10', '2-3 min', 'Cuelga con los brazos extendidos, sube hasta que la barbilla pase la barra.', 'avanzado', 'Barra de dominadas'),
+('Plancha', 'core', 3, '30-60 seg', '1-2 min', 'Mantén el cuerpo recto como una tabla, contrae el abdomen.', 'principiante', 'Ninguno'),
+('Burpees', 'fullbody', 3, '8-12', '1-2 min', 'Combinación de sentadilla, plancha, flexión y salto.', 'avanzado', 'Ninguno');
 
--- Procedimiento para obtener calendario de asistencias de un usuario
-DELIMITER //
-CREATE PROCEDURE ObtenerCalendarioUsuario(
-    IN p_id_usuario INT,
-    IN p_mes INT,
-    IN p_año INT
-)
-BEGIN
-    SELECT 
-        DATE(a.fecha) as fecha,
-        a.hora_entrada,
-        a.hora_salida,
-        a.metodo_registro,
-        a.duracion_minutos,
-        DAYOFWEEK(a.fecha) as dia_semana,
-        CASE 
-            WHEN COUNT(a2.fecha) >= 7 THEN 'logro_7'
-            WHEN COUNT(a2.fecha) >= 30 THEN 'logro_30'
-            ELSE 'normal'
-        END as tipo_marcador
-    FROM asistencias a
-    LEFT JOIN asistencias a2 ON a2.id_usuario = p_id_usuario 
-        AND a2.fecha <= a.fecha
-    WHERE a.id_usuario = p_id_usuario
-    AND MONTH(a.fecha) = p_mes
-    AND YEAR(a.fecha) = p_año
-    GROUP BY a.fecha, a.hora_entrada, a.hora_salida, a.metodo_registro, a.duracion_minutos
-    ORDER BY a.fecha;
-END//
-DELIMITER ;
-
--- =============================================
--- ÍNDICES ADICIONALES PARA OPTIMIZACIÓN
--- =============================================
-
--- Índices para mejorar rendimiento en consultas frecuentes
--- Índice en id_usuario y fecha (puedes filtrar por mes/año en las consultas)
-CREATE INDEX idx_asistencias_usuario_fecha ON asistencias(id_usuario, fecha);
-CREATE INDEX idx_registro_comidas_usuario_fecha ON registro_comidas(id_usuario, fecha);
-CREATE INDEX idx_alimentos_busqueda ON alimentos_base(nombre, marca, veces_usado);
-CREATE INDEX idx_usuarios_racha ON usuarios(racha_actual, racha_maxima);
+-- Insertar estadísticas iniciales
+INSERT INTO estadisticas_gym (fecha, total_asistencias, nuevos_registros, usuarios_activos) VALUES 
+(CURDATE(), 0, 1, 1);
 
 -- =============================================
 -- MENSAJE DE FINALIZACIÓN
 -- =============================================
 
-SELECT 'Base de datos actualizada exitosamente - Versión 2.0' as mensaje,
-       'Características agregadas:' as caracteristicas,
-       '- Sistema de alimentos local con etiquetas' as feature1,
-       '- QR único por usuario y gimnasio' as feature2,
-       '- Control de asistencias y rachas' as feature3,
-       '- Estadísticas y ranking de usuarios' as feature4,
-       '- Calendario de asistencias' as feature5,
-       '- Triggers automáticos' as feature6,
-       '- Procedimientos optimizados' as feature7;
+SELECT 'Base de datos simplificada creada exitosamente' as mensaje,
+       'Estructura optimizada para:' as optimizada_para,
+       '✓ Alimentos con grupos y macros por 100g/ml' as feature1,
+       '✓ Persistencia de alimentos más consumidos por usuario' as feature2,
+       '✓ Cálculos de macros manejados en frontend (JS/PHP)' as feature3,
+       '✓ Estructura simple y eficiente' as feature4,
+       '✓ Fácil mantenimiento y escalabilidad' as feature5;
