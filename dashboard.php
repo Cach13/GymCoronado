@@ -1,6 +1,7 @@
 <?php
 require_once 'config/config.php';
 require_once 'config/User.php';
+require_once 'config/GymAttendanceManager.php'; // ← INCLUIR EL MANAGER
 
 // Verificar permisos y autenticación
 gym_check_permission('cliente');
@@ -12,8 +13,9 @@ if (!gym_is_logged_in()) {
 $user = gym_get_logged_in_user();
 $userObj = new User();
 
-// Obtener estadísticas del usuario
-$userStats = $userObj->get_user_stats($user['id']);
+// USAR GymAttendanceManager para obtener estadísticas reales
+$attendanceManager = gym_attendance_manager();
+$userStats = $attendanceManager->obtenerEstadisticasUsuario($user['id']);
 
 // Obtener rutinas asignadas al usuario
 $rutinasAsignadas = [];
@@ -63,8 +65,16 @@ try {
         'contenido' => 'No se pudo cargar el tip del día. Inténtalo más tarde.'
     ];
 }
-?>
 
+// Calcular el progreso de peso (ejemplo básico)
+$progreso_peso = '-2.5kg'; // Por defecto
+if (!empty($medidasRecientes) && count($medidasRecientes) >= 2) {
+    $peso_actual = $medidasRecientes[0]['peso'] ?? 0;
+    $peso_anterior = $medidasRecientes[1]['peso'] ?? 0;
+    $diferencia = $peso_actual - $peso_anterior;
+    $progreso_peso = ($diferencia >= 0 ? '+' : '') . number_format($diferencia, 1) . 'kg';
+}
+?>
 
 <!DOCTYPE html>
 <html lang="es">
@@ -200,7 +210,6 @@ try {
     </div>
 </nav>
 
-
     <!-- Main content -->
     <main class="main-content">
         <!-- Welcome Card -->
@@ -212,6 +221,17 @@ try {
                         Estás en el camino correcto para alcanzar tus objetivos. 
                         Tu meta actual: <strong><?php echo ucfirst(str_replace('_', ' ', $user['objetivo'])); ?></strong>
                     </p>
+                    <?php if ($userStats && $userStats['dias_desde_ultima'] !== null): ?>
+                        <small class="text-muted d-block mt-1">
+                            <?php if ($userStats['dias_desde_ultima'] == 0): ?>
+                                <i class="fas fa-check-circle text-success"></i> ¡Asististe hoy!
+                            <?php elseif ($userStats['dias_desde_ultima'] == 1): ?>
+                                <i class="fas fa-clock text-warning"></i> Tu última visita fue ayer
+                            <?php else: ?>
+                                <i class="fas fa-calendar text-muted"></i> Tu última visita fue hace <?php echo $userStats['dias_desde_ultima']; ?> días
+                            <?php endif; ?>
+                        </small>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-4 text-center">
                     <i class="fas fa-trophy" style="font-size: 4rem; opacity: 0.3;"></i>
@@ -228,8 +248,8 @@ try {
                             <i class="fas fa-calendar-check"></i>
                         </div>
                         <div class="ms-3">
-                            <h3 class="mb-0"><?php echo $userStats['dias_asistencia']; ?></h3>
-                            <small class="text-muted">Días de Asistencia</small>
+                            <h3 class="mb-0"><?php echo $userStats ? $userStats['total_asistencias'] : 0; ?></h3>
+                            <small class="text-muted">Total Asistencias</small>
                         </div>
                     </div>
                 </div>
@@ -242,14 +262,26 @@ try {
                             <i class="fas fa-fire"></i>
                         </div>
                         <div class="ms-3">
-                            <h3 class="mb-0">5</h3>
+                            <h3 class="mb-0"><?php echo $userStats ? $userStats['racha_actual'] : 0; ?></h3>
                             <small class="text-muted">Racha Actual</small>
                         </div>
                     </div>
                 </div>
             </div>
             
-            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                            <i class="fas fa-medal"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0"><?php echo $userStats ? $userStats['racha_maxima'] : 0; ?></h3>
+                            <small class="text-muted">Mejor Racha</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <div class="col-lg-3 col-md-6 mb-3">
                 <div class="stat-card">
@@ -258,7 +290,7 @@ try {
                             <i class="fas fa-chart-line"></i>
                         </div>
                         <div class="ms-3">
-                            <h3 class="mb-0">-2.5kg</h3>
+                            <h3 class="mb-0"><?php echo $progreso_peso; ?></h3>
                             <small class="text-muted">Progreso</small>
                         </div>
                     </div>
@@ -266,6 +298,33 @@ try {
             </div>
         </div>
 
+        <!-- Información adicional de racha -->
+        <?php if ($userStats): ?>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-1"><i class="fas fa-info-circle me-2"></i>Estado de tu racha</h6>
+                            <p class="mb-0">
+                                <?php if ($userStats['racha_actual'] > 0): ?>
+                                    ¡Excelente! Llevas <strong><?php echo $userStats['racha_actual']; ?> días consecutivos</strong> 
+                                    <?php if ($userStats['tolerancia_usada']): ?>
+                                        <span class="badge bg-warning text-dark ms-1">Tolerancia usada</span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    Comienza una nueva racha registrando tu asistencia hoy
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <small class="text-muted">Este mes: <?php echo $userStats['asistencias_mes']; ?> días</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         
         <!-- Quick Actions -->
         <div class="row mb-4">
@@ -299,7 +358,15 @@ try {
                     </div>
                 </a>
             </div>
-            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <a href="/user/progreso/metricas.php" class="quick-action-btn">
+                    <div class="text-center">
+                        <i class="fas fa-chart-bar fa-2x mb-2" style="color: #6f42c1;"></i>
+                        <h6>Ver Progreso</h6>
+                        <small class="text-muted">Revisa tus métricas</small>
+                    </div>
+                </a>
+            </div>
         </div>
 
         <!-- Recent Activity & Tips -->
@@ -310,33 +377,38 @@ try {
                         <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Actividad Reciente</h5>
                     </div>
                     <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-success rounded-circle p-2 me-3">
-                                <i class="fas fa-check text-white"></i>
+                        <?php if ($userStats && !empty($userStats['ultimas_asistencias'])): ?>
+                            <?php foreach(array_slice($userStats['ultimas_asistencias'], 0, 3) as $asistencia): ?>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-success rounded-circle p-2 me-3">
+                                        <i class="fas fa-check text-white"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Asistencia registrada - <?php echo $asistencia['metodo_nombre']; ?></strong>
+                                        <br><small class="text-muted">
+                                            <?php 
+                                            $fecha = new DateTime($asistencia['fecha']);
+                                            echo $fecha->format('d/m/Y'); 
+                                            if ($asistencia['tolerancia_aplicada']) {
+                                                echo ' <span class="badge bg-warning text-dark">Tolerancia</span>';
+                                            }
+                                            ?>
+                                        </small>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-calendar-plus fa-3x mb-3"></i>
+                                <p>Aún no tienes actividad registrada.<br>¡Comienza marcando tu primera asistencia!</p>
                             </div>
-                            <div>
-                                <strong>Asistencia registrada</strong>
-                                <br><small class="text-muted">Hace 2 horas</small>
-                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($userStats && !empty($userStats['ultimas_asistencias'])): ?>
+                        <div class="text-center">
+                            <a href="/user/progreso/progres.php" class="btn btn-sm btn-outline-primary">Ver historial completo</a>
                         </div>
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-primary rounded-circle p-2 me-3">
-                                <i class="fas fa-dumbbell text-white"></i>
-                            </div>
-                            <div>
-                                <strong>Rutina de piernas completada</strong>
-                                <br><small class="text-muted">Ayer</small>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <div class="bg-warning rounded-circle p-2 me-3">
-                                <i class="fas fa-apple-alt text-white"></i>
-                            </div>
-                            <div>
-                                <strong>Meta de proteína alcanzada</strong>
-                                <br><small class="text-muted">Hace 3 días</small>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -355,8 +427,7 @@ try {
                         </div>
                     </div>
                 </div>
-<?php endif; ?>
-
+            <?php endif; ?>
         </div>
     </main>
 
