@@ -66,14 +66,102 @@ try {
     ];
 }
 
-// Calcular el progreso de peso (ejemplo básico)
-$progreso_peso = '-2.5kg'; // Por defecto
-if (!empty($medidasRecientes) && count($medidasRecientes) >= 2) {
-    $peso_actual = $medidasRecientes[0]['peso'] ?? 0;
-    $peso_anterior = $medidasRecientes[1]['peso'] ?? 0;
-    $diferencia = $peso_actual - $peso_anterior;
-    $progreso_peso = ($diferencia >= 0 ? '+' : '') . number_format($diferencia, 1) . 'kg';
+
+// ... (código anterior hasta la línea del tip del día)
+
+// MEJORAR el cálculo del progreso de peso
+$progreso_peso = 'Sin datos';
+$progreso_clase = 'text-muted';
+$progreso_icono = 'fas fa-minus';
+$progreso_descripcion = 'Registra tus medidas';
+
+if (!empty($medidasRecientes)) {
+    if (count($medidasRecientes) >= 2) {
+        // Comparar con la medida anterior más reciente
+        $peso_actual = (float)($medidasRecientes[0]['peso'] ?? 0);
+        $peso_anterior = (float)($medidasRecientes[1]['peso'] ?? 0);
+        
+        if ($peso_actual > 0 && $peso_anterior > 0) {
+            $diferencia = $peso_actual - $peso_anterior;
+            
+            if (abs($diferencia) >= 0.1) { // Solo mostrar si hay cambio significativo
+                $progreso_peso = ($diferencia >= 0 ? '+' : '') . number_format($diferencia, 1) . 'kg';
+                
+                // Determinar clase CSS e icono según el objetivo del usuario
+                $objetivo = $user['objetivo'] ?? 'mantener';
+                
+                if (abs($diferencia) < 0.5) {
+                    // Cambio mínimo - neutro
+                    $progreso_clase = 'text-info';
+                    $progreso_icono = 'fas fa-equals';
+                    $progreso_descripcion = 'Manteniéndose';
+                } else {
+                    switch ($objetivo) {
+                        case 'perder_peso':
+                            if ($diferencia < 0) {
+                                $progreso_clase = 'text-success';
+                                $progreso_icono = 'fas fa-arrow-down';
+                                $progreso_descripcion = '¡Perdiendo peso!';
+                            } else {
+                                $progreso_clase = 'text-warning';
+                                $progreso_icono = 'fas fa-arrow-up';
+                                $progreso_descripcion = 'Ganando peso';
+                            }
+                            break;
+                            
+                        case 'ganar_peso':
+                        case 'ganar_musculo':
+                            if ($diferencia > 0) {
+                                $progreso_clase = 'text-success';
+                                $progreso_icono = 'fas fa-arrow-up';
+                                $progreso_descripcion = '¡Ganando peso!';
+                            } else {
+                                $progreso_clase = 'text-warning';
+                                $progreso_icono = 'fas fa-arrow-down';
+                                $progreso_descripcion = 'Perdiendo peso';
+                            }
+                            break;
+                            
+                        default: // mantener
+                            if (abs($diferencia) < 1) {
+                                $progreso_clase = 'text-success';
+                                $progreso_icono = 'fas fa-check';
+                                $progreso_descripcion = 'Manteniendo peso';
+                            } else {
+                                $progreso_clase = 'text-info';
+                                $progreso_icono = $diferencia > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
+                                $progreso_descripcion = 'Cambio en peso';
+                            }
+                            break;
+                    }
+                }
+            } else {
+                // Cambio muy pequeño
+                $progreso_peso = 'Sin cambio';
+                $progreso_clase = 'text-success';
+                $progreso_icono = 'fas fa-check';
+                $progreso_descripcion = 'Peso estable';
+            }
+        }
+    } else {
+        // Solo una medida registrada
+        $peso_actual = (float)($medidasRecientes[0]['peso'] ?? 0);
+        if ($peso_actual > 0) {
+            $progreso_peso = number_format($peso_actual, 1) . 'kg';
+            $progreso_clase = 'text-primary';
+            $progreso_icono = 'fas fa-weight';
+            $progreso_descripción = 'Peso actual';
+        }
+    }
 }
+
+// Obtener fecha de la última medida para mostrar información adicional
+$fecha_ultima_medida = null;
+if (!empty($medidasRecientes)) {
+    $fecha_ultima_medida = new DateTime($medidasRecientes[0]['fecha_medicion']);
+    $dias_desde_medida = $fecha_ultima_medida->diff(new DateTime())->days;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -184,12 +272,7 @@ if (!empty($medidasRecientes) && count($medidasRecientes) >= 2) {
                 </ul>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link" href="../user/pagos/pagos.php">
-                    <i class="fas fa-credit-card me-2"></i>
-                    Pagos
-                </a>
-            </li>
+           
 
             <li class="nav-item">
                 <a class="nav-link" href="../user/tips/tips.php">
@@ -283,20 +366,26 @@ if (!empty($medidasRecientes) && count($medidasRecientes) >= 2) {
                 </div>
             </div>
             
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="stat-card">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h3 class="mb-0"><?php echo $progreso_peso; ?></h3>
-                            <small class="text-muted">Progreso</small>
-                        </div>
-                    </div>
-                </div>
+           
+<!-- En la sección de Stats Cards, reemplazar la tarjeta de progreso: -->
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="stat-card">
+        <div class="d-flex align-items-center">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
+                <i class="<?php echo $progreso_icono; ?>"></i>
+            </div>
+            <div class="ms-3">
+                <h3 class="mb-0 <?php echo $progreso_clase; ?>"><?php echo $progreso_peso; ?></h3>
+                <small class="text-muted"><?php echo $progreso_descripcion; ?></small>
+                <?php if ($fecha_ultima_medida && $dias_desde_medida > 0): ?>
+                    <small class="d-block text-muted" style="font-size: 0.7rem;">
+                        Hace <?php echo $dias_desde_medida; ?> día<?php echo $dias_desde_medida > 1 ? 's' : ''; ?>
+                    </small>
+                <?php endif; ?>
             </div>
         </div>
+    </div>
+</div>
 
         <!-- Información adicional de racha -->
         <?php if ($userStats): ?>
@@ -359,7 +448,7 @@ if (!empty($medidasRecientes) && count($medidasRecientes) >= 2) {
                 </a>
             </div>
             <div class="col-lg-3 col-md-6 mb-3">
-                <a href="/user/progreso/metricas.php" class="quick-action-btn">
+                <a href="/user/progreso/progres.php" class="quick-action-btn">
                     <div class="text-center">
                         <i class="fas fa-chart-bar fa-2x mb-2" style="color: #6f42c1;"></i>
                         <h6>Ver Progreso</h6>
