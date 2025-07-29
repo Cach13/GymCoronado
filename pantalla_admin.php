@@ -40,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
       case 'add_quick_attendance':
     try {
-        // Registro rápido de asistencia para hoy
         $userId = intval($_POST['user_id']);
         $adminId = $_SESSION['user_id'];
         $fecha = date('Y-m-d');
@@ -58,88 +57,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         }
         
-        // Verificar si ya tiene asistencia hoy (usando el UNIQUE constraint)
-        $db->query('SELECT id FROM asistencias WHERE id_usuario = :id AND DATE(fecha) = :fecha');
-        $db->bind(':id', $userId);
-        $db->bind(':fecha', $fecha);
-        $asistenciaHoy = $db->single();
+        // Usar el método del GymAttendanceManager que maneja las rachas correctamente
+        $resultado = $attendanceManager->registrarAsistenciaManual($userId, $adminId, $fecha, 'admin_manual');
         
-        if ($asistenciaHoy) {
-            error_log("Usuario ya tiene asistencia hoy - ID: $userId");
-            echo json_encode(['success' => false, 'message' => 'El usuario ya tiene asistencia registrada hoy']);
-            exit;
+        if ($resultado['success']) {
+            error_log("Asistencia registrada exitosamente para usuario $userId");
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => "Asistencia registrada para {$usuario['nombre']} {$usuario['apellido']}",
+                'fecha' => $fecha,
+                'hora' => date('H:i:s'),
+                'nueva_racha' => $resultado['nueva_racha'] ?? 0
+            ]);
+        } else {
+            error_log("Error registrando asistencia - Usuario: $userId, Error: " . $resultado['message']);
+            echo json_encode([
+                'success' => false, 
+                'message' => $resultado['message']
+            ]);
         }
-        
-        // Iniciar transacción
-        $db->beginTransaction();
-        
-        // Insertar asistencia con la estructura correcta
-        $db->query("
-            INSERT INTO asistencias 
-            (
-                id_usuario, 
-                fecha, 
-                hora_entrada, 
-                metodo_registro, 
-                registrado_por, 
-                tolerancia_aplicada, 
-                validacion_admin, 
-                notas
-            ) 
-            VALUES 
-            (
-                :id_usuario, 
-                :fecha, 
-                NOW(), 
-                'admin_manual', 
-                :registrado_por, 
-                FALSE, 
-                TRUE, 
-                'Registrado manualmente por administrador'
-            )
-        ");
-        $db->bind(':id_usuario', $userId);
-        $db->bind(':fecha', $fecha);
-        $db->bind(':registrado_por', $adminId);
-        
-        if (!$db->execute()) {
-            throw new Exception('Error al insertar asistencia en la base de datos');
-        }
-        
-        $asistenciaId = $db->lastInsertId();
-        error_log("Asistencia insertada correctamente - ID: $asistenciaId");
-        
-        // Actualizar fecha_ultima_asistencia del usuario
-        $db->query("UPDATE usuarios SET fecha_ultima_asistencia = :fecha WHERE id = :id");
-        $db->bind(':fecha', $fecha);
-        $db->bind(':id', $userId);
-        $db->execute();
-        
-        // Confirmar transacción
-        $db->endTransaction();
-        
-        error_log("Asistencia registrada exitosamente para usuario $userId");
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => "Asistencia registrada para {$usuario['nombre']} {$usuario['apellido']}",
-            'asistencia_id' => $asistenciaId,
-            'fecha' => $fecha,
-            'hora' => date('H:i:s')
-        ]);
         
     } catch (Exception $e) {
-        // Rollback en caso de error
-        if (isset($db)) {
-            $db->cancelTransaction();
-        }
-        
         error_log("Error registrando asistencia - Usuario: $userId, Error: " . $e->getMessage());
         echo json_encode([
             'success' => false, 
             'message' => 'Error al registrar asistencia: ' . $e->getMessage()
         ]);
     }
+    
     exit;
             
         case 'delete_user':
