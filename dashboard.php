@@ -273,7 +273,7 @@ try {
                 <h4 class="mb-3">Acciones Rápidas</h4>
             </div>
             <div class="col-lg-3 col-md-6 mb-3">
-                <a href="marcar_asistencia.php" class="quick-action-btn">
+                <a href="/user/asitencia/registrar_asistencia.php" class="quick-action-btn">
                     <div class="text-center">
                         <i class="fas fa-check-circle fa-2x mb-2" style="color: #28a745;"></i>
                         <h6>Marcar Asistencia</h6>

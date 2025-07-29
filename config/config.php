@@ -81,16 +81,19 @@ class Database {
         return $this->stmt->execute();
     }
 
-    public function resultset() {
-        $this->execute();
-        return $this->stmt->fetchAll();
-    }
+  public function resultset() {
+    $this->execute();
+    $results = $this->stmt->fetchAll();
+    $this->stmt->closeCursor(); // ← AGREGAR ESTA LÍNEA
+    return $results;
+}
 
-    public function single() {
-        $this->execute();
-        return $this->stmt->fetch();
-    }
-
+   public function single() {
+    $this->execute();
+    $result = $this->stmt->fetch();
+    $this->stmt->closeCursor(); // ← AGREGAR ESTA LÍNEA
+    return $result;
+}
     public function rowCount() {
         return $this->stmt->rowCount();
     }
@@ -137,16 +140,24 @@ function gym_get_logged_in_user() {
             'apellido' => $_SESSION['user_apellido'],
             'telefono' => $_SESSION['user_telefono'] ?? null,
             'tipo' => $_SESSION['user_tipo'],
-            'objetivo' => $_SESSION['user_objetivo'] ?? 'mantener',
             'activo' => $_SESSION['user_activo'] ?? true,
             'puede_acceder' => $_SESSION['user_puede_acceder'] ?? true,
+            'fecha_registro' => $_SESSION['user_fecha_registro'] ?? null,
             'fecha_nacimiento' => $_SESSION['user_fecha_nacimiento'] ?? null,
-            'genero' => $_SESSION['user_genero'] ?? null
+            'genero' => $_SESSION['user_genero'] ?? null,
+            'objetivo' => $_SESSION['user_objetivo'] ?? 'mantener',
+            'notas' => $_SESSION['user_notas'] ?? null,
+            // Nuevos campos del sistema QR y rachas
+            'qr_code' => $_SESSION['user_qr_code'] ?? null,
+            'racha_actual' => $_SESSION['user_racha_actual'] ?? 0,
+            'racha_maxima' => $_SESSION['user_racha_maxima'] ?? 0,
+            'fecha_ultima_asistencia' => $_SESSION['user_fecha_ultima_asistencia'] ?? null,
+            'tolerancia_usada' => $_SESSION['user_tolerancia_usada'] ?? false,
+            'fecha_tolerancia' => $_SESSION['user_fecha_tolerancia'] ?? null
         ];
     }
     return null;
 }
-
 
 // Función para cerrar sesión
 function gym_logout() {
@@ -156,9 +167,27 @@ function gym_logout() {
     }
 }
 
-// Función para redireccionar
+// Función para redireccionar (mejorada)
 function gym_redirect($url) {
-    header("Location: " . $url);
+    // Verificar si ya se enviaron headers
+    if (headers_sent()) {
+        echo "<script>window.location.href = '$url';</script>";
+        echo '<noscript><meta http-equiv="refresh" content="0;url=' . $url . '" /></noscript>';
+    } else {
+        // Limpiar cualquier output buffer
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        // Hacer la URL absoluta si es relativa
+        if (!preg_match('/^https?:\/\//', $url)) {
+            $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . 
+                       "://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']);
+            $url = rtrim($base_url, '/') . '/' . ltrim($url, '/');
+        }
+        
+        header("Location: " . $url, true, 302);
+    }
     exit();
 }
 

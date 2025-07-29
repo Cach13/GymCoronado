@@ -100,17 +100,12 @@ class GymAttendanceManager {
     }
     
     /**
-     * Registrar asistencia por código
+     * Registrar asistencia por código - CORREGIDO
      */
     public function registrarAsistenciaPorCodigo($id_usuario, $codigo, $ip_usuario = null, $user_agent = null) {
         try {
-            // Primero validar el código
-            $validacion = $this->validarCodigo($codigo);
-            if (!$validacion['valid']) {
-                return $validacion;
-            }
-            
-            $this->db->query("CALL RegistrarAsistenciaConCodigo(:id_usuario, :codigo, 'codigo_temporal', NULL, :ip_usuario, :user_agent)");
+            // Usar el procedimiento correcto que existe en la BD
+            $this->db->query("CALL RegistrarAsistenciaCompleta(:id_usuario, :codigo, 'codigo_temporal', NULL, :ip_usuario, :user_agent)");
             $this->db->bind(':id_usuario', $id_usuario);
             $this->db->bind(':codigo', $codigo);
             $this->db->bind(':ip_usuario', $ip_usuario);
@@ -121,226 +116,119 @@ class GymAttendanceManager {
             if ($resultado && strpos($resultado['resultado'], 'SUCCESS') === 0) {
                 return [
                     'success' => true,
-                    'message' => 'Asistencia registrada correctamente',
+                    'message' => $resultado['mensaje'] ?? 'Asistencia registrada correctamente',
                     'nueva_racha' => $resultado['nueva_racha'] ?? 0,
                     'tolerancia_aplicada' => $resultado['tolerancia_aplicada'] ?? false
                 ];
             } else {
                 return [
                     'success' => false,
-                    'message' => $resultado['resultado'] ?? 'Error desconocido'
+                    'message' => $resultado['mensaje'] ?? 'Error desconocido al registrar asistencia'
                 ];
             }
             
         } catch (Exception $e) {
+            error_log("Error en registrarAsistenciaPorCodigo: " . $e->getMessage());
             return ['success' => false, 'message' => 'Error al registrar asistencia: ' . $e->getMessage()];
         }
     }
     
     /**
- * Registrar asistencia manual (por admin) - Versión sin procedimiento almacenado
- */
-public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null, $metodo = 'admin_manual') {
-    try {
-        if (!$fecha) {
-            $fecha = date('Y-m-d');
-        }
-        
-        $this->db->beginTransaction();
-        
-        // Verificar que no exista asistencia para esa fecha
-        $this->db->query("SELECT id FROM asistencias WHERE id_usuario = :id_usuario AND DATE(fecha) = :fecha");
-        $this->db->bind(':id_usuario', $id_usuario);
-        $this->db->bind(':fecha', $fecha);
-        $existe = $this->db->single();
-        
-        if ($existe) {
-            $this->db->cancelTransaction();
-            return ['success' => false, 'message' => 'Ya existe asistencia para esa fecha'];
-        }
-        
-        // Obtener datos actuales del usuario
-        $this->db->query("
-            SELECT racha_actual, racha_maxima, fecha_ultima_asistencia, tolerancia_usada, fecha_tolerancia 
-            FROM usuarios 
-            WHERE id = :id_usuario AND activo = TRUE
-        ");
-        $this->db->bind(':id_usuario', $id_usuario);
-        $usuario = $this->db->single();
-        
-        if (!$usuario) {
-            $this->db->cancelTransaction();
-            return ['success' => false, 'message' => 'Usuario no encontrado o inactivo'];
-        }
-        
-        // Obtener configuración de tolerancia
-        $configuracion = $this->obtenerConfiguracionTolerancia();
-        if (!$configuracion) {
-            // Valores por defecto si no hay configuración
-            $configuracion = [
-                'dia_tolerancia' => 'sunday',
-                'tolerancia_activa' => true
-            ];
-        }
-        
-        $dia_tolerancia = $configuracion['dia_tolerancia'] ?? 'sunday';
-        $tolerancia_activa = $configuracion['tolerancia_activa'] ?? true;
-        
-        // Calcular nueva racha
-        $racha_actual = $usuario['racha_actual'];
-        $racha_maxima = $usuario['racha_maxima'];
-        $fecha_ultima = $usuario['fecha_ultima_asistencia'];
-        $tolerancia_usada = $usuario['tolerancia_usada'];
-        $fecha_tolerancia = $usuario['fecha_tolerancia'];
-        $tolerancia_aplicada = false;
-        
-        if ($fecha_ultima === null) {
-            // Primera asistencia
-            $racha_actual = 1;
-            $tolerancia_usada = false;
-            $fecha_tolerancia = null;
-        } else {
-            $fecha_actual_obj = new DateTime($fecha);
-            $fecha_ultima_obj = new DateTime($fecha_ultima);
-            $dias_diferencia = $fecha_ultima_obj->diff($fecha_actual_obj)->days;
-            
-            // Convertir día de tolerancia al formato de PHP
-            $dias_php = [
-                'monday' => 'monday',
-                'tuesday' => 'tuesday', 
-                'wednesday' => 'wednesday',
-                'thursday' => 'thursday',
-                'friday' => 'friday',
-                'saturday' => 'saturday',
-                'sunday' => 'sunday',
-                'lunes' => 'monday',
-                'martes' => 'tuesday',
-                'miercoles' => 'wednesday',
-                'jueves' => 'thursday',
-                'viernes' => 'friday',
-                'sabado' => 'saturday',
-                'domingo' => 'sunday'
-            ];
-            
-            $dia_tolerancia_php = $dias_php[strtolower($dia_tolerancia)] ?? 'sunday';
-            $es_dia_tolerancia = strtolower($fecha_actual_obj->format('l')) === $dia_tolerancia_php;
-            
-            if ($dias_diferencia === 1) {
-                // Día consecutivo
-                $racha_actual++;
-            } elseif ($dias_diferencia === 2 && $tolerancia_activa && $es_dia_tolerancia && !$tolerancia_usada) {
-                // Aplicar tolerancia
-                $racha_actual++;
-                $tolerancia_usada = true;
-                $tolerancia_aplicada = true;
-                $fecha_tolerancia = $fecha_ultima_obj->add(new DateInterval('P1D'))->format('Y-m-d');
-            } else {
-                // Se rompió la racha
-                $racha_actual = 1;
-                $tolerancia_usada = false;
-                $fecha_tolerancia = null;
+     * Registrar asistencia manual (por admin) - MEJORADO
+     */
+    public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null, $metodo = 'admin_manual') {
+        try {
+            if (!$fecha) {
+                $fecha = date('Y-m-d');
             }
+            
+            // Usar el procedimiento almacenado completo
+            $this->db->query("CALL RegistrarAsistenciaCompleta(:id_usuario, NULL, :metodo, :id_admin, NULL, NULL)");
+            $this->db->bind(':id_usuario', $id_usuario);
+            $this->db->bind(':metodo', $metodo);
+            $this->db->bind(':id_admin', $id_admin);
+            
+            $resultado = $this->db->single();
+            
+            if ($resultado && strpos($resultado['resultado'], 'SUCCESS') === 0) {
+                return [
+                    'success' => true,
+                    'message' => $resultado['mensaje'] ?? 'Asistencia registrada correctamente por admin',
+                    'nueva_racha' => $resultado['nueva_racha'] ?? 0,
+                    'tolerancia_aplicada' => $resultado['tolerancia_aplicada'] ?? false
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => $resultado['mensaje'] ?? 'Error al registrar asistencia manual'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error en registrarAsistenciaManual: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error al registrar asistencia manual: ' . $e->getMessage()];
         }
-        
-        // Actualizar racha máxima si es necesario
-        if ($racha_actual > $racha_maxima) {
-            $racha_maxima = $racha_actual;
-        }
-        
-        // Insertar asistencia
-        $this->db->query("
-            INSERT INTO asistencias (
-                id_usuario, 
-                fecha, 
-                hora_entrada, 
-                metodo_registro, 
-                registrado_por, 
-                tolerancia_aplicada, 
-                validacion_admin, 
-                notas
-            ) VALUES (
-                :id_usuario,
-                :fecha,
-                NOW(),
-                :metodo,
-                :registrado_por,
-                :tolerancia_aplicada,
-                TRUE,
-                :notas
-            )
-        ");
-        $this->db->bind(':id_usuario', $id_usuario);
-        $this->db->bind(':fecha', $fecha);
-        $this->db->bind(':metodo', $metodo);
-        $this->db->bind(':registrado_por', $id_admin);
-        $this->db->bind(':tolerancia_aplicada', $tolerancia_aplicada);
-        $this->db->bind(':notas', 'Registrado manualmente por administrador');
-        
-        if (!$this->db->execute()) {
-            throw new Exception('Error al insertar asistencia');
-        }
-        
-        // Actualizar usuario con nueva racha
-        $this->db->query("
-            UPDATE usuarios 
-            SET racha_actual = :racha_actual,
-                racha_maxima = :racha_maxima,
-                fecha_ultima_asistencia = :fecha_ultima,
-                tolerancia_usada = :tolerancia_usada,
-                fecha_tolerancia = :fecha_tolerancia
-            WHERE id = :id_usuario
-        ");
-        $this->db->bind(':racha_actual', $racha_actual);
-        $this->db->bind(':racha_maxima', $racha_maxima);
-        $this->db->bind(':fecha_ultima', $fecha);
-        $this->db->bind(':tolerancia_usada', $tolerancia_usada);
-        $this->db->bind(':fecha_tolerancia', $fecha_tolerancia);
-        $this->db->bind(':id_usuario', $id_usuario);
-        $this->db->execute();
-        
-        // Registrar en historial de acciones administrativas
-        $this->registrarAccionAdmin($id_usuario, $id_admin, 'registro_asistencia', "Asistencia registrada manualmente para la fecha: $fecha");
-        
-        $this->db->endTransaction();
-        
-        return [
-            'success' => true,
-            'message' => 'Asistencia registrada correctamente por admin',
-            'nueva_racha' => $racha_actual,
-            'tolerancia_aplicada' => $tolerancia_aplicada
-        ];
-        
-    } catch (Exception $e) {
-        $this->db->cancelTransaction();
-        return ['success' => false, 'message' => 'Error al registrar asistencia manual: ' . $e->getMessage()];
     }
-}
+    
     /**
      * Obtener códigos activos
      */
     public function obtenerCodigosActivos($limit = 10) {
         try {
-            $this->db->query("SELECT * FROM vista_codigos_activos LIMIT :limit");
+            $this->db->query("
+                SELECT c.*, u.nombre as creado_por_nombre,
+                       CASE 
+                           WHEN CURDATE() > c.fecha_expiracion THEN 'Expirado'
+                           WHEN CURTIME() NOT BETWEEN c.hora_inicio AND c.hora_fin THEN 'Fuera de horario'
+                           WHEN c.limite_usos IS NOT NULL AND c.usos_totales >= c.limite_usos THEN 'Sin usos'
+                           ELSE 'Activo'
+                       END as estado_actual
+                FROM codigos_asistencia c
+                JOIN usuarios u ON c.creado_por = u.id
+                WHERE c.activo = TRUE 
+                ORDER BY c.fecha_creacion DESC 
+                LIMIT :limit
+            ");
             $this->db->bind(':limit', $limit);
             return $this->db->resultset();
         } catch (Exception $e) {
+            error_log("Error obteniendo códigos activos: " . $e->getMessage());
             return [];
         }
     }
     
     /**
-     * Obtener estadísticas de un usuario
+     * Obtener estadísticas de un usuario - MEJORADO
      */
     public function obtenerEstadisticasUsuario($id_usuario) {
         try {
-            $this->db->query("SELECT * FROM vista_estadisticas_usuario WHERE id = :id_usuario");
+            // Obtener datos básicos del usuario
+            $this->db->query("
+                SELECT 
+                    u.id, u.nombre, u.apellido, u.email,
+                    u.racha_actual, u.racha_maxima, u.fecha_ultima_asistencia,
+                    u.tolerancia_usada, u.fecha_tolerancia,
+                    COUNT(a.id) as total_asistencias,
+                    COUNT(CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as asistencias_mes
+                FROM usuarios u
+                LEFT JOIN asistencias a ON u.id = a.id_usuario
+                WHERE u.id = :id_usuario
+                GROUP BY u.id
+            ");
             $this->db->bind(':id_usuario', $id_usuario);
             $estadisticas = $this->db->single();
             
             if ($estadisticas) {
                 // Obtener últimas asistencias
                 $this->db->query("
-                    SELECT a.*, c.nombre_codigo, c.codigo
+                    SELECT a.*, c.nombre_codigo, c.codigo,
+                           CASE a.metodo_registro
+                               WHEN 'qr_personal' THEN 'QR Personal'
+                               WHEN 'qr_gimnasio' THEN 'QR Gimnasio'
+                               WHEN 'admin_manual' THEN 'Manual'
+                               WHEN 'codigo_temporal' THEN 'Código'
+                               ELSE a.metodo_registro
+                           END as metodo_nombre
                     FROM asistencias a
                     LEFT JOIN codigos_asistencia c ON a.id_codigo_usado = c.id
                     WHERE a.id_usuario = :id_usuario
@@ -360,6 +248,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             return $estadisticas;
         } catch (Exception $e) {
+            error_log("Error obteniendo estadísticas usuario: " . $e->getMessage());
             return null;
         }
     }
@@ -419,6 +308,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             return $this->db->resultset();
         } catch (Exception $e) {
+            error_log("Error obteniendo historial códigos: " . $e->getMessage());
             return [];
         }
     }
@@ -434,7 +324,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             if ($this->db->rowCount() > 0) {
                 // Registrar acción
-                $this->registrarAccionAdmin(null, $id_admin, 'desactivar', "Código de asistencia ID: $id_codigo desactivado");
+                $this->registrarAccionAdmin(null, $id_admin, 'desactivar_codigo', "Código de asistencia ID: $id_codigo desactivado");
                 return ['success' => true, 'message' => 'Código desactivado correctamente'];
             }
             
@@ -476,6 +366,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             return $this->db->resultset();
         } catch (Exception $e) {
+            error_log("Error obteniendo ranking mensual: " . $e->getMessage());
             return [];
         }
     }
@@ -532,6 +423,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             return $estadisticas;
         } catch (Exception $e) {
+            error_log("Error obteniendo estadísticas generales: " . $e->getMessage());
             return null;
         }
     }
@@ -541,12 +433,24 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
      */
     public function configurarTolerancia($dia_tolerancia, $tolerancia_activa = true, $racha_minima_premio = 7) {
         try {
-            $this->db->query("
-                UPDATE configuracion_racha 
-                SET dia_tolerancia = :dia_tolerancia,
-                    tolerancia_activa = :tolerancia_activa,
-                    racha_minima_premio = :racha_minima_premio
-            ");
+            // Verificar si existe configuración
+            $this->db->query("SELECT COUNT(*) as count FROM configuracion_racha");
+            $existe = $this->db->single();
+            
+            if ($existe['count'] > 0) {
+                $this->db->query("
+                    UPDATE configuracion_racha 
+                    SET dia_tolerancia = :dia_tolerancia,
+                        tolerancia_activa = :tolerancia_activa,
+                        racha_minima_premio = :racha_minima_premio
+                ");
+            } else {
+                $this->db->query("
+                    INSERT INTO configuracion_racha (dia_tolerancia, tolerancia_activa, racha_minima_premio)
+                    VALUES (:dia_tolerancia, :tolerancia_activa, :racha_minima_premio)
+                ");
+            }
+            
             $this->db->bind(':dia_tolerancia', $dia_tolerancia);
             $this->db->bind(':tolerancia_activa', $tolerancia_activa);
             $this->db->bind(':racha_minima_premio', $racha_minima_premio);
@@ -564,124 +468,26 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
     public function obtenerConfiguracionTolerancia() {
         try {
             $this->db->query("SELECT * FROM configuracion_racha LIMIT 1");
-            return $this->db->single();
+            $config = $this->db->single();
+            
+            // Si no existe configuración, crear una por defecto
+            if (!$config) {
+                $this->configurarTolerancia('domingo', true, 7);
+                $config = [
+                    'dia_tolerancia' => 'domingo',
+                    'tolerancia_activa' => true,
+                    'racha_minima_premio' => 7
+                ];
+            }
+            
+            return $config;
         } catch (Exception $e) {
-            return null;
-        }
-    }
-    
-    /**
-     * Recalcular rachas de todos los usuarios (función de mantenimiento)
-     */
-    public function recalcularRachas() {
-        try {
-            $this->db->beginTransaction();
-            
-            // Obtener todos los usuarios activos
-            $this->db->query("SELECT id FROM usuarios WHERE tipo = 'cliente' AND activo = TRUE");
-            $usuarios = $this->db->resultset();
-            
-            foreach ($usuarios as $usuario) {
-                $this->recalcularRachaUsuario($usuario['id']);
-            }
-            
-            $this->db->endTransaction();
-            return ['success' => true, 'message' => 'Rachas recalculadas correctamente'];
-        } catch (Exception $e) {
-            $this->db->cancelTransaction();
-            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
-        }
-    }
-    
-    /**
-     * Recalcular racha de un usuario específico
-     */
-    private function recalcularRachaUsuario($id_usuario) {
-        try {
-            // Obtener todas las asistencias del usuario ordenadas por fecha
-            $this->db->query("
-                SELECT fecha 
-                FROM asistencias 
-                WHERE id_usuario = :id_usuario 
-                ORDER BY fecha ASC
-            ");
-            $this->db->bind(':id_usuario', $id_usuario);
-            $asistencias = $this->db->resultset();
-            
-            if (empty($asistencias)) {
-                return; // Sin asistencias
-            }
-            
-            $configuracion = $this->obtenerConfiguracionTolerancia();
-            $dia_tolerancia = $configuracion['dia_tolerancia'] ?? 'domingo';
-            $tolerancia_activa = $configuracion['tolerancia_activa'] ?? true;
-            
-            $racha_actual = 0;
-            $racha_maxima = 0;
-            $fecha_anterior = null;
-            $tolerancia_usada = false;
-            $fecha_tolerancia = null;
-            
-            foreach ($asistencias as $asistencia) {
-                $fecha_actual = new DateTime($asistencia['fecha']);
-                
-                if ($fecha_anterior === null) {
-                    // Primera asistencia
-                    $racha_actual = 1;
-                } else {
-                    $dias_diferencia = $fecha_anterior->diff($fecha_actual)->days;
-                    $es_dia_tolerancia = strtolower($fecha_actual->format('l')) === $dia_tolerancia;
-                    
-                    if ($dias_diferencia === 1) {
-                        // Día consecutivo
-                        $racha_actual++;
-                    } elseif ($dias_diferencia === 2 && $tolerancia_activa && $es_dia_tolerancia && !$tolerancia_usada) {
-                        // Aplicar tolerancia
-                        $racha_actual++;
-                        $tolerancia_usada = true;
-                        $fecha_tolerancia = $fecha_anterior->add(new DateInterval('P1D'))->format('Y-m-d');
-                    } else {
-                        // Se rompió la racha
-                        $racha_actual = 1;
-                        $tolerancia_usada = false;
-                        $fecha_tolerancia = null;
-                    }
-                }
-                
-                $racha_maxima = max($racha_maxima, $racha_actual);
-                $fecha_anterior = $fecha_actual;
-            }
-            
-            // Verificar si la racha actual está vigente (última asistencia no muy antigua)
-            $ultima_fecha = end($asistencias)['fecha'];
-            $dias_desde_ultima = (new DateTime())->diff(new DateTime($ultima_fecha))->days;
-            
-            if ($dias_desde_ultima > 2) { // Más de 2 días sin asistir
-                $racha_actual = 0;
-                $tolerancia_usada = false;
-                $fecha_tolerancia = null;
-            }
-            
-            // Actualizar en la base de datos
-            $this->db->query("
-                UPDATE usuarios 
-                SET racha_actual = :racha_actual,
-                    racha_maxima = :racha_maxima,
-                    fecha_ultima_asistencia = :fecha_ultima_asistencia,
-                    tolerancia_usada = :tolerancia_usada,
-                    fecha_tolerancia = :fecha_tolerancia
-                WHERE id = :id_usuario
-            ");
-            $this->db->bind(':racha_actual', $racha_actual);
-            $this->db->bind(':racha_maxima', $racha_maxima);
-            $this->db->bind(':fecha_ultima_asistencia', $ultima_fecha);
-            $this->db->bind(':tolerancia_usada', $tolerancia_usada);
-            $this->db->bind(':fecha_tolerancia', $fecha_tolerancia);
-            $this->db->bind(':id_usuario', $id_usuario);
-            $this->db->execute();
-            
-        } catch (Exception $e) {
-            throw $e;
+            error_log("Error obteniendo configuración tolerancia: " . $e->getMessage());
+            return [
+                'dia_tolerancia' => 'domingo',
+                'tolerancia_activa' => true,
+                'racha_minima_premio' => 7
+            ];
         }
     }
     
@@ -737,7 +543,14 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
                     a.*,
                     c.codigo,
                     c.nombre_codigo,
-                    admin.nombre as registrado_por_nombre
+                    admin.nombre as registrado_por_nombre,
+                    CASE a.metodo_registro
+                        WHEN 'qr_personal' THEN 'QR Personal'
+                        WHEN 'qr_gimnasio' THEN 'QR Gimnasio'
+                        WHEN 'admin_manual' THEN 'Manual'
+                        WHEN 'codigo_temporal' THEN 'Código'
+                        ELSE a.metodo_registro
+                    END as metodo_nombre
                 FROM asistencias a
                 LEFT JOIN codigos_asistencia c ON a.id_codigo_usado = c.id
                 LEFT JOIN usuarios admin ON a.registrado_por = admin.id
@@ -751,6 +564,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             return $this->db->resultset();
         } catch (Exception $e) {
+            error_log("Error obteniendo asistencias usuario: " . $e->getMessage());
             return [];
         }
     }
@@ -791,6 +605,7 @@ public function registrarAsistenciaManual($id_usuario, $id_admin, $fecha = null,
             
             return true;
         } catch (Exception $e) {
+            error_log("Error verificando tolerancia: " . $e->getMessage());
             return false;
         }
     }
