@@ -1,6 +1,6 @@
 -- =============================================
--- BASE DE DATOS PARA GYM APP - VERSIÓN SIMPLIFICADA
--- Con sistema de alimentos simplificado y QR de asistencia
+-- BASE DE DATOS PARA GYM APP - FUSIÓN COMPLETA
+-- Con sistema de códigos de asistencia + alimentos simplificado + QR
 -- =============================================
 
 CREATE DATABASE IF NOT EXISTS gym;
@@ -27,11 +27,16 @@ CREATE TABLE IF NOT EXISTS usuarios (
     notas TEXT,
     -- QR único para cada usuario
     qr_code VARCHAR(100) UNIQUE NOT NULL,
+    -- Sistema de rachas mejorado
     racha_actual INT DEFAULT 0,
     racha_maxima INT DEFAULT 0,
+    fecha_ultima_asistencia DATE NULL,
+    tolerancia_usada BOOLEAN DEFAULT FALSE,
+    fecha_tolerancia DATE NULL,
     INDEX idx_acceso (activo, puede_acceder),
     INDEX idx_tipo_activo (tipo, activo),
-    INDEX idx_qr_code (qr_code)
+    INDEX idx_qr_code (qr_code),
+    INDEX idx_racha_activos (racha_actual, activo, puede_acceder)
 );
 
 -- =============================================
@@ -48,7 +53,86 @@ CREATE TABLE IF NOT EXISTS configuracion_qr (
 );
 
 -- =============================================
--- REGISTRO DE ASISTENCIAS
+-- CÓDIGOS DE ASISTENCIA TEMPORALES
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS codigos_asistencia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(20) UNIQUE NOT NULL,
+    nombre_codigo VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    tipo_duracion ENUM('dia', 'semana') DEFAULT 'dia',
+    fecha_inicio DATE NOT NULL,
+    fecha_expiracion DATE NOT NULL,
+    hora_inicio TIME DEFAULT '06:00:00',
+    hora_fin TIME DEFAULT '23:59:59',
+    activo BOOLEAN DEFAULT TRUE,
+    usos_totales INT DEFAULT 0,
+    limite_usos INT DEFAULT NULL, -- NULL = sin límite
+    creado_por INT NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_codigo_activo (codigo, activo),
+    INDEX idx_fecha_expiracion (fecha_expiracion),
+    INDEX idx_creado_por (creado_por),
+    INDEX idx_fecha_activo (fecha_expiracion, activo)
+);
+
+-- =============================================
+-- USO DE CÓDIGOS POR USUARIO
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS uso_codigos_asistencia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_codigo INT NOT NULL,
+    id_usuario INT NOT NULL,
+    fecha_uso DATE NOT NULL,
+    hora_uso TIME NOT NULL,
+    ip_usuario VARCHAR(45),
+    user_agent TEXT,
+    validado_por INT NULL, -- Si fue validado manualmente por admin
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_codigo) REFERENCES codigos_asistencia(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (validado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_codigo_usuario_fecha (id_codigo, id_usuario, fecha_uso),
+    INDEX idx_codigo_fecha (id_codigo, fecha_uso),
+    INDEX idx_usuario_fecha (id_usuario, fecha_uso)
+);
+
+-- =============================================
+-- CONFIGURACIÓN DE RACHA
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS configuracion_racha (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dia_tolerancia ENUM('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo') DEFAULT 'domingo',
+    tolerancia_activa BOOLEAN DEFAULT TRUE,
+    racha_minima_premio INT DEFAULT 7, -- Días mínimos para considerar premio
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- =============================================
+-- HISTORIAL DETALLADO DE RACHAS
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS historial_rachas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NULL,
+    dias_consecutivos INT DEFAULT 1,
+    tipo_finalizacion ENUM('activa', 'rota', 'pausada') DEFAULT 'activa',
+    tolerancia_usada BOOLEAN DEFAULT FALSE,
+    fecha_tolerancia DATE NULL,
+    observaciones TEXT,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_usuario_fecha (id_usuario, fecha_inicio),
+    INDEX idx_tipo_finalizacion (tipo_finalizacion)
+);
+
+-- =============================================
+-- REGISTRO DE ASISTENCIAS (FUSIONADO)
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS asistencias (
@@ -57,17 +141,23 @@ CREATE TABLE IF NOT EXISTS asistencias (
     fecha DATE NOT NULL,
     hora_entrada TIME NOT NULL,
     hora_salida TIME NULL,
-    metodo_registro ENUM('qr_personal', 'qr_gimnasio', 'admin_manual') NOT NULL,
+    metodo_registro ENUM('qr_personal', 'qr_gimnasio', 'admin_manual', 'codigo_temporal') NOT NULL,
     registrado_por INT NULL, -- ID del admin que registró manualmente
+    id_codigo_usado INT NULL, -- Código de asistencia usado
+    tolerancia_aplicada BOOLEAN DEFAULT FALSE,
+    validacion_admin BOOLEAN DEFAULT FALSE,
     duracion_minutos INT NULL,
     notas TEXT,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (registrado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
+    FOREIGN KEY (id_codigo_usado) REFERENCES codigos_asistencia(id) ON DELETE SET NULL,
     UNIQUE KEY unique_usuario_fecha (id_usuario, fecha),
     INDEX idx_usuario_fecha (id_usuario, fecha),
     INDEX idx_fecha (fecha),
-    INDEX idx_metodo (metodo_registro)
+    INDEX idx_metodo (metodo_registro),
+    INDEX idx_codigo_usado (id_codigo_usado),
+    INDEX idx_asistencias_usuario_fecha_metodo (id_usuario, fecha, metodo_registro)
 );
 
 -- =============================================
@@ -78,7 +168,7 @@ CREATE TABLE IF NOT EXISTS historial_acceso (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
     id_administrador INT NOT NULL,
-    accion ENUM('activar', 'desactivar', 'bloquear_acceso', 'eliminar', 'registro_asistencia') NOT NULL,
+    accion ENUM('activar', 'desactivar', 'bloquear_acceso', 'eliminar', 'registro_asistencia', 'crear_codigo', 'desactivar_codigo') NOT NULL,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     detalles TEXT,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -303,7 +393,7 @@ CREATE TABLE IF NOT EXISTS objetivos_nutricionales (
 );
 
 -- =============================================
--- ESTADÍSTICAS DEL GIMNASIO
+-- ESTADÍSTICAS DEL GIMNASIO (MEJORADAS)
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS estadisticas_gym (
@@ -317,12 +407,15 @@ CREATE TABLE IF NOT EXISTS estadisticas_gym (
     asistencias_qr_personal INT DEFAULT 0,
     asistencias_qr_gimnasio INT DEFAULT 0,
     asistencias_admin INT DEFAULT 0,
+    asistencias_codigo_temporal INT DEFAULT 0,
+    codigos_creados INT DEFAULT 0,
+    codigos_usados INT DEFAULT 0,
     UNIQUE KEY unique_fecha (fecha),
     INDEX idx_fecha (fecha)
 );
 
 -- =============================================
--- ESTADÍSTICAS DE USUARIOS MÁS ACTIVOS
+-- RANKING DE ASISTENCIAS
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS ranking_asistencias (
@@ -341,68 +434,236 @@ CREATE TABLE IF NOT EXISTS ranking_asistencias (
 );
 
 -- =============================================
--- PROCEDIMIENTOS ALMACENADOS BÁSICOS
+-- PROCEDIMIENTOS ALMACENADOS FUSIONADOS
 -- =============================================
 
--- Procedimiento para registrar asistencia y actualizar racha
+-- Procedimiento para generar códigos automáticamente
 DELIMITER //
-CREATE PROCEDURE RegistrarAsistencia(
+CREATE PROCEDURE GenerarCodigoAsistencia(
+    IN p_nombre VARCHAR(100),
+    IN p_descripcion TEXT,
+    IN p_tipo_duracion ENUM('dia', 'semana'),
+    IN p_hora_inicio TIME,
+    IN p_hora_fin TIME,
+    IN p_limite_usos INT,
+    IN p_creado_por INT
+)
+BEGIN
+    DECLARE v_codigo VARCHAR(20);
+    DECLARE v_fecha_inicio DATE DEFAULT CURDATE();
+    DECLARE v_fecha_expiracion DATE;
+    DECLARE v_codigo_existe INT DEFAULT 1;
+    
+    -- Calcular fecha de expiración
+    IF p_tipo_duracion = 'dia' THEN
+        SET v_fecha_expiracion = CURDATE();
+    ELSE
+        SET v_fecha_expiracion = DATE_ADD(CURDATE(), INTERVAL 7 DAY);
+    END IF;
+    
+    -- Generar código único
+    WHILE v_codigo_existe > 0 DO
+        SET v_codigo = CONCAT(
+            UPPER(SUBSTRING(p_nombre, 1, 3)), 
+            LPAD(FLOOR(RAND() * 10000), 4, '0'),
+            DATE_FORMAT(NOW(), '%d')
+        );
+        
+        SELECT COUNT(*) INTO v_codigo_existe 
+        FROM codigos_asistencia 
+        WHERE codigo = v_codigo AND activo = TRUE;
+    END WHILE;
+    
+    -- Insertar el código
+    INSERT INTO codigos_asistencia 
+    (codigo, nombre_codigo, descripcion, tipo_duracion, fecha_inicio, fecha_expiracion, 
+     hora_inicio, hora_fin, limite_usos, creado_por)
+    VALUES 
+    (v_codigo, p_nombre, p_descripcion, p_tipo_duracion, v_fecha_inicio, v_fecha_expiracion,
+     p_hora_inicio, p_hora_fin, p_limite_usos, p_creado_por);
+    
+    -- Registrar acción administrativa
+    INSERT INTO historial_acceso (id_usuario, id_administrador, accion, detalles)
+    VALUES (p_creado_por, p_creado_por, 'crear_codigo', CONCAT('Código creado: ', v_codigo));
+    
+    SELECT v_codigo as codigo_generado, v_fecha_expiracion as expira_en;
+END//
+DELIMITER ;
+
+-- Procedimiento principal para registrar asistencia (FUSIONADO Y MEJORADO)
+DELIMITER //
+CREATE PROCEDURE RegistrarAsistenciaCompleta(
     IN p_id_usuario INT,
-    IN p_metodo ENUM('qr_personal', 'qr_gimnasio', 'admin_manual'),
-    IN p_registrado_por INT
+    IN p_codigo_asistencia VARCHAR(20),
+    IN p_metodo ENUM('qr_personal', 'qr_gimnasio', 'admin_manual', 'codigo_temporal'),
+    IN p_registrado_por INT,
+    IN p_ip_usuario VARCHAR(45),
+    IN p_user_agent TEXT
 )
 BEGIN
     DECLARE v_fecha_hoy DATE DEFAULT CURDATE();
     DECLARE v_hora_actual TIME DEFAULT CURTIME();
+    DECLARE v_id_codigo INT DEFAULT NULL;
+    DECLARE v_codigo_valido BOOLEAN DEFAULT FALSE;
     DECLARE v_ultima_asistencia DATE;
     DECLARE v_racha_actual INT;
     DECLARE v_racha_maxima INT;
     DECLARE v_nueva_racha INT;
+    DECLARE v_tolerancia_usada BOOLEAN DEFAULT FALSE;
+    DECLARE v_fecha_tolerancia DATE DEFAULT NULL;
+    DECLARE v_dia_tolerancia VARCHAR(10);
+    DECLARE v_tolerancia_activa BOOLEAN DEFAULT TRUE;
+    DECLARE v_dias_diferencia INT;
+    DECLARE v_es_dia_tolerancia BOOLEAN DEFAULT FALSE;
+    DECLARE v_tolerancia_aplicada BOOLEAN DEFAULT FALSE;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SELECT 'ERROR: Error en la transacción' as resultado, 'Ocurrió un error inesperado' as mensaje;
+    END;
+    
+    START TRANSACTION;
     
     -- Verificar si ya existe asistencia hoy
     IF EXISTS (SELECT 1 FROM asistencias WHERE id_usuario = p_id_usuario AND fecha = v_fecha_hoy) THEN
-        SELECT 'ERROR: Ya existe asistencia registrada para hoy' as resultado;
+        SELECT 'ERROR' as resultado, 'Ya existe asistencia registrada para hoy' as mensaje;
+        ROLLBACK;
     ELSE
-        -- Insertar asistencia
-        INSERT INTO asistencias (id_usuario, fecha, hora_entrada, metodo_registro, registrado_por)
-        VALUES (p_id_usuario, v_fecha_hoy, v_hora_actual, p_metodo, p_registrado_por);
-        
-        -- Obtener datos actuales del usuario
-        SELECT racha_actual, racha_maxima 
-        INTO v_racha_actual, v_racha_maxima
-        FROM usuarios WHERE id = p_id_usuario;
-        
-        -- Obtener última asistencia
-        SELECT MAX(fecha) INTO v_ultima_asistencia 
-        FROM asistencias 
-        WHERE id_usuario = p_id_usuario AND fecha < v_fecha_hoy;
-        
-        -- Calcular nueva racha
-        IF v_ultima_asistencia IS NULL OR DATEDIFF(v_fecha_hoy, v_ultima_asistencia) = 1 THEN
-            SET v_nueva_racha = v_racha_actual + 1;
-        ELSEIF DATEDIFF(v_fecha_hoy, v_ultima_asistencia) > 1 THEN
-            SET v_nueva_racha = 1; -- Reiniciar racha
+        -- Validar código si se proporciona
+        IF p_codigo_asistencia IS NOT NULL AND p_codigo_asistencia != '' THEN
+            SELECT id INTO v_id_codigo
+            FROM codigos_asistencia 
+            WHERE codigo = p_codigo_asistencia 
+            AND activo = TRUE 
+            AND v_fecha_hoy BETWEEN fecha_inicio AND fecha_expiracion
+            AND v_hora_actual BETWEEN hora_inicio AND hora_fin
+            AND (limite_usos IS NULL OR usos_totales < limite_usos);
+            
+            IF v_id_codigo IS NOT NULL THEN
+                SET v_codigo_valido = TRUE;
+                
+                -- Actualizar uso del código
+                UPDATE codigos_asistencia 
+                SET usos_totales = usos_totales + 1
+                WHERE id = v_id_codigo;
+                
+                -- Registrar uso del código
+                INSERT INTO uso_codigos_asistencia 
+                (id_codigo, id_usuario, fecha_uso, hora_uso, ip_usuario, user_agent, validado_por)
+                VALUES 
+                (v_id_codigo, p_id_usuario, v_fecha_hoy, v_hora_actual, p_ip_usuario, p_user_agent, p_registrado_por);
+            ELSE
+                SELECT 'ERROR' as resultado, 'Código inválido, expirado o sin usos disponibles' as mensaje;
+                ROLLBACK;
+            END IF;
+        ELSEIF p_metodo = 'codigo_temporal' THEN
+            SELECT 'ERROR' as resultado, 'Se requiere un código válido para este método' as mensaje;
+            ROLLBACK;
         ELSE
-            SET v_nueva_racha = v_racha_actual;
+            SET v_codigo_valido = TRUE; -- Para otros métodos no se requiere código
         END IF;
         
-        -- Actualizar racha en usuarios
-        UPDATE usuarios 
-        SET racha_actual = v_nueva_racha,
-            racha_maxima = GREATEST(v_racha_maxima, v_nueva_racha)
-        WHERE id = p_id_usuario;
-        
-        -- Insertar en rachas
-        INSERT INTO rachas (id_usuario, fecha, activa, consecutiva)
-        VALUES (p_id_usuario, v_fecha_hoy, TRUE, TRUE);
-        
-        SELECT 'SUCCESS: Asistencia registrada correctamente' as resultado, v_nueva_racha as nueva_racha;
+        IF v_codigo_valido THEN
+            -- Obtener configuración de tolerancia
+            SELECT dia_tolerancia, tolerancia_activa 
+            INTO v_dia_tolerancia, v_tolerancia_activa
+            FROM configuracion_racha 
+            LIMIT 1;
+            
+            -- Obtener datos actuales del usuario
+            SELECT racha_actual, racha_maxima, fecha_ultima_asistencia, tolerancia_usada, fecha_tolerancia
+            INTO v_racha_actual, v_racha_maxima, v_ultima_asistencia, v_tolerancia_usada, v_fecha_tolerancia
+            FROM usuarios WHERE id = p_id_usuario;
+            
+            -- Calcular nueva racha con tolerancia
+            IF v_ultima_asistencia IS NULL THEN
+                -- Primera asistencia
+                SET v_nueva_racha = 1;
+            ELSE
+                SET v_dias_diferencia = DATEDIFF(v_fecha_hoy, v_ultima_asistencia);
+                
+                -- Verificar si hoy es día de tolerancia
+                SET v_es_dia_tolerancia = (LOWER(DAYNAME(v_fecha_hoy)) = v_dia_tolerancia);
+                
+                IF v_dias_diferencia = 1 THEN
+                    -- Día consecutivo normal
+                    SET v_nueva_racha = v_racha_actual + 1;
+                ELSEIF v_dias_diferencia = 2 AND v_tolerancia_activa AND v_es_dia_tolerancia AND NOT v_tolerancia_usada THEN
+                    -- Aplicar tolerancia (se saltó el día de tolerancia)
+                    SET v_nueva_racha = v_racha_actual + 1;
+                    SET v_tolerancia_usada = TRUE;
+                    SET v_fecha_tolerancia = DATE_SUB(v_fecha_hoy, INTERVAL 1 DAY);
+                    SET v_tolerancia_aplicada = TRUE;
+                ELSEIF v_dias_diferencia > 1 THEN
+                    -- Se rompió la racha
+                    SET v_nueva_racha = 1;
+                    SET v_tolerancia_usada = FALSE;
+                    SET v_fecha_tolerancia = NULL;
+                ELSE
+                    -- Mismo día (no debería pasar por la validación anterior)
+                    SET v_nueva_racha = v_racha_actual;
+                END IF;
+            END IF;
+            
+            -- Insertar asistencia
+            INSERT INTO asistencias 
+            (id_usuario, fecha, hora_entrada, metodo_registro, registrado_por, id_codigo_usado, 
+             tolerancia_aplicada, validacion_admin)
+            VALUES 
+            (p_id_usuario, v_fecha_hoy, v_hora_actual, p_metodo, p_registrado_por, v_id_codigo,
+             v_tolerancia_aplicada, 
+             (p_registrado_por IS NOT NULL AND p_metodo = 'admin_manual'));
+            
+            -- Actualizar usuario
+            UPDATE usuarios 
+            SET racha_actual = v_nueva_racha,
+                racha_maxima = GREATEST(v_racha_maxima, v_nueva_racha),
+                fecha_ultima_asistencia = v_fecha_hoy,
+                tolerancia_usada = v_tolerancia_usada,
+                fecha_tolerancia = v_fecha_tolerancia
+            WHERE id = p_id_usuario;
+            
+            -- Actualizar tabla de rachas
+            INSERT INTO rachas (id_usuario, fecha, activa, consecutiva, tipo_actividad)
+            VALUES (p_id_usuario, v_fecha_hoy, TRUE, TRUE, 'gym')
+            ON DUPLICATE KEY UPDATE activa = TRUE, consecutiva = TRUE;
+            
+            -- Registrar en historial si es acción administrativa
+            IF p_registrado_por IS NOT NULL AND p_metodo = 'admin_manual' THEN
+                INSERT INTO historial_acceso (id_usuario, id_administrador, accion, detalles)
+                VALUES (p_id_usuario, p_registrado_por, 'registro_asistencia', 'Asistencia registrada manualmente');
+            END IF;
+            
+            COMMIT;
+            SELECT 'SUCCESS' as resultado, 
+                   'Asistencia registrada correctamente' as mensaje,
+                   v_nueva_racha as nueva_racha,
+                   v_tolerancia_aplicada as tolerancia_aplicada;
+        END IF;
     END IF;
 END//
 DELIMITER ;
 
+-- Procedimiento para limpiar códigos expirados
+DELIMITER //
+CREATE PROCEDURE LimpiarCodigosExpirados()
+BEGIN
+    DECLARE v_codigos_limpiados INT DEFAULT 0;
+    
+    UPDATE codigos_asistencia 
+    SET activo = FALSE 
+    WHERE fecha_expiracion < CURDATE() AND activo = TRUE;
+    
+    SET v_codigos_limpiados = ROW_COUNT();
+    
+    SELECT v_codigos_limpiados as codigos_desactivados, 
+           'Códigos expirados limpiados exitosamente' as mensaje;
+END//
+DELIMITER ;
+
 -- =============================================
--- TRIGGERS BÁSICOS
+-- TRIGGERS FUSIONADOS Y MEJORADOS
 -- =============================================
 
 -- Trigger para generar QR único al crear usuario
@@ -412,12 +673,68 @@ BEFORE INSERT ON usuarios
 FOR EACH ROW
 BEGIN
     IF NEW.qr_code IS NULL OR NEW.qr_code = '' THEN
-        SET NEW.qr_code = CONCAT('USER_', NEW.email, '_', UNIX_TIMESTAMP());
+        SET NEW.qr_code = CONCAT('USER_', UPPER(SUBSTRING(NEW.email, 1, 5)), '_', UNIX_TIMESTAMP(), '_', SUBSTRING(MD5(NEW.email), 1, 6));
     END IF;
 END//
 DELIMITER ;
 
--- Trigger para actualizar estadísticas de alimentos consumidos
+-- Trigger para actualizar estadísticas cuando se registra asistencia
+DELIMITER //
+CREATE TRIGGER actualizar_stats_asistencia
+AFTER INSERT ON asistencias
+FOR EACH ROW
+BEGIN
+    -- Actualizar estadísticas del día
+    INSERT INTO estadisticas_gym (
+        fecha, total_asistencias, 
+        asistencias_qr_personal, asistencias_qr_gimnasio, 
+        asistencias_admin, asistencias_codigo_temporal
+    )
+    VALUES (
+        NEW.fecha, 1,
+        IF(NEW.metodo_registro = 'qr_personal', 1, 0),
+        IF(NEW.metodo_registro = 'qr_gimnasio', 1, 0),
+        IF(NEW.metodo_registro = 'admin_manual', 1, 0),
+        IF(NEW.metodo_registro = 'codigo_temporal', 1, 0)
+    )
+    ON DUPLICATE KEY UPDATE 
+        total_asistencias = total_asistencias + 1,
+        asistencias_qr_personal = asistencias_qr_personal + IF(NEW.metodo_registro = 'qr_personal', 1, 0),
+        asistencias_qr_gimnasio = asistencias_qr_gimnasio + IF(NEW.metodo_registro = 'qr_gimnasio', 1, 0),
+        asistencias_admin = asistencias_admin + IF(NEW.metodo_registro = 'admin_manual', 1, 0),
+        asistencias_codigo_temporal = asistencias_codigo_temporal + IF(NEW.metodo_registro = 'codigo_temporal', 1, 0);
+END//
+DELIMITER ;
+
+-- Trigger para actualizar estadísticas cuando se usa un código
+DELIMITER //
+CREATE TRIGGER actualizar_stats_codigo
+AFTER INSERT ON uso_codigos_asistencia
+FOR EACH ROW
+BEGIN
+    -- Actualizar estadísticas del día
+    INSERT INTO estadisticas_gym (fecha, codigos_usados)
+    VALUES (NEW.fecha_uso, 1)
+    ON DUPLICATE KEY UPDATE 
+        codigos_usados = codigos_usados + 1;
+END//
+DELIMITER ;
+
+-- Trigger para actualizar estadísticas cuando se crea un código
+DELIMITER //
+CREATE TRIGGER actualizar_stats_crear_codigo
+AFTER INSERT ON codigos_asistencia
+FOR EACH ROW
+BEGIN
+    -- Actualizar estadísticas del día
+    INSERT INTO estadisticas_gym (fecha, codigos_creados)
+    VALUES (CURDATE(), 1)
+    ON DUPLICATE KEY UPDATE 
+        codigos_creados = codigos_creados + 1;
+END//
+DELIMITER ;
+
+-- Trigger para actualizar alimentos frecuentes
 DELIMITER //
 CREATE TRIGGER actualizar_alimento_frecuente
 AFTER INSERT ON registro_comidas
@@ -428,25 +745,226 @@ BEGIN
     ON DUPLICATE KEY UPDATE 
         veces_consumido = veces_consumido + 1,
         ultima_vez = NEW.fecha;
+        
+    -- Actualizar estadísticas de comidas registradas
+    INSERT INTO estadisticas_gym (fecha, comidas_registradas)
+    VALUES (NEW.fecha, 1)
+    ON DUPLICATE KEY UPDATE 
+        comidas_registradas = comidas_registradas + 1;
+END//
+DELIMITER ;
+
+-- Trigger para actualizar estadísticas de nuevos usuarios
+DELIMITER //
+CREATE TRIGGER actualizar_stats_nuevo_usuario
+AFTER INSERT ON usuarios
+FOR EACH ROW
+BEGIN
+    IF NEW.tipo = 'cliente' THEN
+        INSERT INTO estadisticas_gym (fecha, nuevos_registros)
+        VALUES (CURDATE(), 1)
+        ON DUPLICATE KEY UPDATE 
+            nuevos_registros = nuevos_registros + 1;
+    END IF;
 END//
 DELIMITER ;
 
 -- =============================================
--- DATOS INICIALES
+-- VISTAS ÚTILES FUSIONADAS
+-- =============================================
+
+-- Vista para códigos activos
+CREATE OR REPLACE VIEW vista_codigos_activos AS
+SELECT 
+    c.id,
+    c.codigo,
+    c.nombre_codigo,
+    c.descripcion,
+    c.tipo_duracion,
+    c.fecha_inicio,
+    c.fecha_expiracion,
+    c.hora_inicio,
+    c.hora_fin,
+    c.usos_totales,
+    c.limite_usos,
+    CASE 
+        WHEN c.limite_usos IS NULL THEN 'Sin límite'
+        ELSE CONCAT(c.limite_usos - c.usos_totales, ' usos restantes')
+    END as usos_disponibles,
+    u.nombre as creado_por_nombre,
+    c.fecha_creacion,
+    CASE 
+        WHEN CURDATE() > c.fecha_expiracion THEN 'Expirado'
+        WHEN CURDATE() < c.fecha_inicio THEN 'Pendiente'
+        WHEN CURTIME() NOT BETWEEN c.hora_inicio AND c.hora_fin THEN 'Fuera de horario'
+        WHEN c.limite_usos IS NOT NULL AND c.usos_totales >= c.limite_usos THEN 'Sin usos'
+        ELSE 'Activo'
+    END as estado
+FROM codigos_asistencia c
+JOIN usuarios u ON c.creado_por = u.id
+WHERE c.activo = TRUE
+ORDER BY c.fecha_creacion DESC;
+
+-- Vista para estadísticas completas de usuario
+CREATE OR REPLACE VIEW vista_estadisticas_usuario AS
+SELECT 
+    u.id,
+    u.nombre,
+    u.apellido,
+    u.email,
+    u.racha_actual,
+    u.racha_maxima,
+    u.fecha_ultima_asistencia,
+    u.tolerancia_usada,
+    u.fecha_tolerancia,
+    u.objetivo,
+    u.activo,
+    u.puede_acceder,
+    COUNT(a.id) as total_asistencias,
+    COUNT(CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as asistencias_mes,
+    COUNT(CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) as asistencias_semana,
+    COUNT(CASE WHEN a.metodo_registro = 'codigo_temporal' THEN 1 END) as asistencias_por_codigo,
+    COUNT(CASE WHEN a.metodo_registro = 'qr_personal' THEN 1 END) as asistencias_qr_personal,
+    COUNT(CASE WHEN a.metodo_registro = 'qr_gimnasio' THEN 1 END) as asistencias_qr_gimnasio,
+    COUNT(CASE WHEN a.metodo_registro = 'admin_manual' THEN 1 END) as asistencias_admin,
+    COUNT(CASE WHEN a.tolerancia_aplicada = TRUE THEN 1 END) as tolerancias_aplicadas,
+    COUNT(rc.id) as comidas_registradas,
+    COUNT(CASE WHEN rc.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as comidas_mes
+FROM usuarios u
+LEFT JOIN asistencias a ON u.id = a.id_usuario
+LEFT JOIN registro_comidas rc ON u.id = rc.id_usuario
+WHERE u.tipo = 'cliente' AND u.activo = TRUE
+GROUP BY u.id
+ORDER BY u.racha_actual DESC, total_asistencias DESC;
+
+-- Vista para ranking de usuarios más activos
+CREATE OR REPLACE VIEW vista_ranking_usuarios AS
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY u.racha_actual DESC, COUNT(a.id) DESC) as posicion,
+    u.id,
+    u.nombre,
+    u.apellido,
+    u.racha_actual,
+    u.racha_maxima,
+    COUNT(a.id) as total_asistencias,
+    COUNT(CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as asistencias_mes,
+    u.fecha_ultima_asistencia,
+    DATEDIFF(CURDATE(), u.fecha_ultima_asistencia) as dias_sin_asistir
+FROM usuarios u
+LEFT JOIN asistencias a ON u.id = a.id_usuario
+WHERE u.tipo = 'cliente' AND u.activo = TRUE AND u.puede_acceder = TRUE
+GROUP BY u.id
+HAVING total_asistencias > 0
+ORDER BY u.racha_actual DESC, total_asistencias DESC
+LIMIT 50;
+
+-- Vista para dashboard de estadísticas
+CREATE OR REPLACE VIEW vista_dashboard_stats AS
+SELECT 
+    CURDATE() as fecha,
+    COUNT(DISTINCT CASE WHEN a.fecha = CURDATE() THEN a.id_usuario END) as asistencias_hoy,
+    COUNT(DISTINCT CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN a.id_usuario END) as usuarios_activos_semana,
+    COUNT(DISTINCT CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN a.id_usuario END) as usuarios_activos_mes,
+    COUNT(DISTINCT CASE WHEN u.fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN u.id END) as nuevos_usuarios_mes,
+    COUNT(DISTINCT CASE WHEN ca.fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN ca.id END) as codigos_creados_semana,
+    COUNT(DISTINCT CASE WHEN uca.fecha_uso = CURDATE() THEN uca.id END) as usos_codigo_hoy,
+    AVG(u.racha_actual) as racha_promedio,
+    MAX(u.racha_actual) as racha_maxima_actual
+FROM usuarios u
+LEFT JOIN asistencias a ON u.id = a.id_usuario
+LEFT JOIN codigos_asistencia ca ON ca.activo = TRUE
+LEFT JOIN uso_codigos_asistencia uca ON uca.fecha_uso >= CURDATE()
+WHERE u.tipo = 'cliente' AND u.activo = TRUE;
+
+-- Vista para alimentos más populares
+CREATE OR REPLACE VIEW vista_alimentos_populares AS
+SELECT 
+    a.id,
+    a.nombre,
+    a.marca,
+    ga.nombre as grupo_alimento,
+    ga.color as color_grupo,
+    a.calorias_100,
+    a.proteinas_100,
+    a.carbohidratos_100,
+    a.grasas_100,
+    COUNT(rc.id) as veces_registrado,
+    COUNT(DISTINCT rc.id_usuario) as usuarios_diferentes,
+    AVG(rc.cantidad) as cantidad_promedio,
+    MAX(rc.fecha) as ultima_vez_registrado
+FROM alimentos a
+JOIN grupos_alimentos ga ON a.id_grupo = ga.id
+LEFT JOIN registro_comidas rc ON a.id = rc.id_alimento
+WHERE a.activo = TRUE
+GROUP BY a.id
+HAVING veces_registrado > 0
+ORDER BY veces_registrado DESC, usuarios_diferentes DESC
+LIMIT 20;
+
+-- =============================================
+-- EVENTOS PROGRAMADOS
+-- =============================================
+
+-- Evento para limpiar códigos expirados diariamente
+CREATE EVENT IF NOT EXISTS limpiar_codigos_diario
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-01-01 01:00:00'
+DO
+  CALL LimpiarCodigosExpirados();
+
+-- Evento para actualizar ranking mensual
+DELIMITER //
+CREATE EVENT IF NOT EXISTS actualizar_ranking_mensual
+ON SCHEDULE EVERY 1 MONTH
+STARTS '2024-01-01 02:00:00'
+DO
+BEGIN
+    DECLARE v_mes INT DEFAULT MONTH(CURDATE());
+    DECLARE v_año INT DEFAULT YEAR(CURDATE());
+    
+    -- Limpiar ranking del mes anterior
+    DELETE FROM ranking_asistencias WHERE mes = v_mes AND año = v_año;
+    
+    -- Insertar nuevo ranking
+    INSERT INTO ranking_asistencias (id_usuario, mes, año, total_asistencias, racha_maxima_mes, posicion_ranking)
+    SELECT 
+        u.id,
+        v_mes,
+        v_año,
+        COUNT(a.id) as total_asistencias,
+        u.racha_maxima,
+        ROW_NUMBER() OVER (ORDER BY COUNT(a.id) DESC, u.racha_actual DESC) as posicion
+    FROM usuarios u
+    LEFT JOIN asistencias a ON u.id = a.id_usuario 
+        AND MONTH(a.fecha) = v_mes 
+        AND YEAR(a.fecha) = v_año
+    WHERE u.tipo = 'cliente' AND u.activo = TRUE
+    GROUP BY u.id
+    ORDER BY total_asistencias DESC;
+END//
+DELIMITER ;
+
+-- =============================================
+-- DATOS INICIALES COMPLETOS
 -- =============================================
 
 -- Generar QR único para gimnasio
 INSERT INTO configuracion_qr (qr_gimnasio, nombre_gym, activo) VALUES 
-(CONCAT('GYM_QR_', UNIX_TIMESTAMP()), 'Mi Gimnasio', TRUE);
+(CONCAT('GYM_QR_', UNIX_TIMESTAMP(), '_', SUBSTRING(MD5('mi_gym'), 1, 8)), 'Mi Gimnasio', TRUE);
+
+-- Insertar configuración de racha por defecto
+INSERT INTO configuracion_racha (dia_tolerancia, tolerancia_activa, racha_minima_premio) 
+VALUES ('domingo', TRUE, 7);
 
 -- Insertar usuario admin con QR
 INSERT INTO usuarios (email, password, nombre, apellido, tipo, qr_code) VALUES 
-('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin', CONCAT('ADMIN_QR_', UNIX_TIMESTAMP()));
+('admin@gym.com', '$2y$10$ejemplo_hash_password', 'Admin', 'Gym', 'admin', 
+CONCAT('ADMIN_QR_', UNIX_TIMESTAMP(), '_', SUBSTRING(MD5('admin@gym.com'), 1, 8)));
 
 -- Insertar grupos de alimentos
 INSERT INTO grupos_alimentos (nombre, descripcion, color) VALUES 
 ('Frutas', 'Frutas frescas y naturales', '#28a745'),
-('Verduras', 'Vegetales y hortalizas', '#28a745'),
+('Verduras', 'Vegetales y hortalizas', '#20c997'),
 ('Proteínas', 'Carnes, pescados, huevos y lácteos', '#dc3545'),
 ('Cereales', 'Granos, cereales y tubérculos', '#ffc107'),
 ('Legumbres', 'Frijoles, lentejas y garbanzos', '#6f42c1'),
@@ -454,59 +972,508 @@ INSERT INTO grupos_alimentos (nombre, descripcion, color) VALUES
 ('Grasas', 'Aceites, frutos secos y semillas', '#fd7e14'),
 ('Bebidas', 'Líquidos y bebidas', '#17a2b8'),
 ('Procesados', 'Alimentos procesados', '#6c757d'),
-('Dulces', 'Azúcares y dulces', '#20c997');
+('Dulces', 'Azúcares y dulces', '#f8d7da');
 
--- Insertar alimentos básicos (ejemplos)
-INSERT INTO alimentos (nombre, marca, id_grupo, calorias_100, proteinas_100, carbohidratos_100, grasas_100, fibra_100, tipo_medida) VALUES 
-('Pechuga de pollo', NULL, 3, 165, 31, 0, 3.6, 0, 'gramos'),
-('Arroz blanco cocido', NULL, 4, 130, 2.7, 28, 0.3, 0.4, 'gramos'),
-('Plátano', NULL, 1, 89, 1.1, 23, 0.3, 2.6, 'gramos'),
-('Huevo entero', NULL, 3, 155, 13, 1.1, 11, 0, 'gramos'),
-('Avena', NULL, 4, 389, 16.9, 66, 6.9, 10.6, 'gramos'),
-('Leche entera', NULL, 6, 61, 3.2, 4.8, 3.2, 0, 'mililitros'),
-('Manzana', NULL, 1, 52, 0.3, 14, 0.2, 2.4, 'gramos'),
-('Salmón', NULL, 3, 208, 20, 0, 12, 0, 'gramos'),
-('Brócoli', NULL, 2, 34, 2.8, 7, 0.4, 2.6, 'gramos'),
-('Almendras', NULL, 7, 579, 21, 22, 50, 12, 'gramos'),
-('Yogurt griego', NULL, 6, 59, 10, 3.6, 0.4, 0, 'gramos'),
-('Pasta cocida', NULL, 4, 131, 5, 25, 1.1, 1.8, 'gramos'),
-('Atún en agua', NULL, 3, 116, 25, 0, 0.8, 0, 'gramos'),
-('Pan integral', NULL, 4, 247, 13, 41, 4.2, 7, 'gramos'),
-('Frijoles negros', NULL, 5, 132, 8.9, 23, 0.5, 8.7, 'gramos'),
-('Agua', NULL, 8, 0, 0, 0, 0, 0, 'mililitros'),
-('Aceite de oliva', NULL, 7, 884, 0, 0, 100, 0, 'mililitros'),
-('Espinacas', NULL, 2, 23, 2.9, 3.6, 0.4, 2.2, 'gramos'),
-('Quinoa cocida', NULL, 4, 120, 4.4, 22, 1.9, 2.8, 'gramos'),
-('Pavo', NULL, 3, 189, 29, 0, 7.4, 0, 'gramos');
+-- Insertar alimentos básicos completos
+INSERT INTO alimentos (nombre, marca, id_grupo, calorias_100, proteinas_100, carbohidratos_100, grasas_100, fibra_100, tipo_medida, creado_por) VALUES 
+-- PROTEÍNAS
+('Pechuga de pollo', NULL, 3, 165, 31, 0, 3.6, 0, 'gramos', 1),
+('Huevo entero', NULL, 3, 155, 13, 1.1, 11, 0, 'gramos', 1),
+('Salmón', NULL, 3, 208, 20, 0, 12, 0, 'gramos', 1),
+('Atún en agua', NULL, 3, 116, 25, 0, 0.8, 0, 'gramos', 1),
+('Pavo', NULL, 3, 189, 29, 0, 7.4, 0, 'gramos', 1),
+('Carne molida magra', NULL, 3, 250, 26, 0, 15, 0, 'gramos', 1),
+('Tilapia', NULL, 3, 96, 20, 0, 1.7, 0, 'gramos', 1),
+('Camarones', NULL, 3, 85, 18, 1, 0.3, 0, 'gramos', 1),
 
--- Insertar tips básicos
+-- CEREALES
+('Arroz blanco cocido', NULL, 4, 130, 2.7, 28, 0.3, 0.4, 'gramos', 1),
+('Avena', NULL, 4, 389, 16.9, 66, 6.9, 10.6, 'gramos', 1),
+('Pasta cocida', NULL, 4, 131, 5, 25, 1.1, 1.8, 'gramos', 1),
+('Pan integral', NULL, 4, 247, 13, 41, 4.2, 7, 'gramos', 1),
+('Quinoa cocida', NULL, 4, 120, 4.4, 22, 1.9, 2.8, 'gramos', 1),
+('Arroz integral', NULL, 4, 123, 2.6, 23, 0.9, 1.8, 'gramos', 1),
+('Papa', NULL, 4, 77, 2, 17, 0.1, 2.2, 'gramos', 1),
+('Camote', NULL, 4, 86, 1.6, 20, 0.1, 3, 'gramos', 1),
+
+-- FRUTAS
+('Plátano', NULL, 1, 89, 1.1, 23, 0.3, 2.6, 'gramos', 1),
+('Manzana', NULL, 1, 52, 0.3, 14, 0.2, 2.4, 'gramos', 1),
+('Naranja', NULL, 1, 43, 0.9, 11, 0.1, 2.4, 'gramos', 1),
+('Fresa', NULL, 1, 32, 0.7, 8, 0.3, 2, 'gramos', 1),
+('Uvas', NULL, 1, 62, 0.6, 16, 0.2, 0.9, 'gramos', 1),
+('Piña', NULL, 1, 50, 0.5, 13, 0.1, 1.4, 'gramos', 1),
+('Mango', NULL, 1, 65, 0.8, 17, 0.4, 1.6, 'gramos', 1),
+('Papaya', NULL, 1, 43, 0.5, 11, 0.3, 1.7, 'gramos', 1),
+
+-- VERDURAS
+('Brócoli', NULL, 2, 34, 2.8, 7, 0.4, 2.6, 'gramos', 1),
+('Espinacas', NULL, 2, 23, 2.9, 3.6, 0.4, 2.2, 'gramos', 1),
+('Lechuga', NULL, 2, 15, 1.4, 2.9, 0.1, 1.3, 'gramos', 1),
+('Tomate', NULL, 2, 18, 0.9, 3.9, 0.2, 1.2, 'gramos', 1),
+('Zanahoria', NULL, 2, 41, 0.9, 10, 0.2, 2.8, 'gramos', 1),
+('Pepino', NULL, 2, 15, 0.7, 4, 0.1, 0.5, 'gramos', 1),
+('Apio', NULL, 2, 14, 0.7, 3, 0.1, 1.6, 'gramos', 1),
+('Cebolla', NULL, 2, 40, 1.1, 9, 0.1, 1.7, 'gramos', 1),
+
+-- LEGUMBRES
+('Frijoles negros', NULL, 5, 132, 8.9, 23, 0.5, 8.7, 'gramos', 1),
+('Lentejas', NULL, 5, 116, 9, 20, 0.4, 7.9, 'gramos', 1),
+('Garbanzos', NULL, 5, 164, 8.9, 27, 2.6, 7.6, 'gramos', 1),
+('Frijoles rojos', NULL, 5, 127, 8.7, 23, 0.5, 6.4, 'gramos', 1),
+
+-- LÁCTEOS
+('Leche entera', NULL, 6, 61, 3.2, 4.8, 3.2, 0, 'mililitros', 1),
+('Yogurt griego', NULL, 6, 59, 10, 3.6, 0.4, 0, 'gramos', 1),
+('Queso cottage', NULL, 6, 98, 11, 3.4, 4.3, 0, 'gramos', 1),
+('Queso mozzarella', NULL, 6, 280, 28, 2.2, 17, 0, 'gramos', 1),
+('Leche descremada', NULL, 6, 34, 3.4, 5, 0.1, 0, 'mililitros', 1),
+
+-- GRASAS SALUDABLES
+('Almendras', NULL, 7, 579, 21, 22, 50, 12, 'gramos', 1),
+('Nueces', NULL, 7, 654, 15, 14, 65, 6.7, 'gramos', 1),
+('Aceite de oliva', NULL, 7, 884, 0, 0, 100, 0, 'mililitros', 1),
+('Aguacate', NULL, 7, 160, 2, 9, 15, 6.7, 'gramos', 1),
+('Semillas de chía', NULL, 7, 486, 17, 42, 31, 34, 'gramos', 1),
+('Mantequilla de maní', NULL, 7, 588, 25, 20, 50, 6, 'gramos', 1),
+
+-- BEBIDAS
+('Agua', NULL, 8, 0, 0, 0, 0, 0, 'mililitros', 1),
+('Té verde', NULL, 8, 1, 0, 0, 0, 0, 'mililitros', 1),
+('Café negro', NULL, 8, 2, 0.3, 0, 0, 0, 'mililitros', 1),
+('Leche de almendras', NULL, 8, 17, 0.6, 0.6, 1.1, 0.4, 'mililitros', 1);
+
+-- Insertar tips básicos completos
 INSERT INTO tips (titulo, contenido, categoria, id_autor) VALUES 
 ('Hidratación esencial', 'Toma al menos 8 vasos de agua al día. Tu rendimiento mejora significativamente con buena hidratación.', 'general', 1),
 ('Proteína post-entreno', 'Consume proteína dentro de los 30 minutos después de entrenar para máxima recuperación muscular.', 'nutricion', 1),
 ('Descanso entre series', 'Para fuerza: 2-3 min. Para hipertrofia: 1-2 min. Para resistencia: 30-60 seg.', 'ejercicio', 1),
 ('Mentalidad positiva', 'Cada día en el gym es una victoria. No importa qué tan pequeño sea el progreso.', 'mentalidad', 1),
-('Importancia del sueño', 'Dormir 7-8 horas es crucial para la recuperación muscular y el rendimiento óptimo.', 'recovery', 1);
+('Importancia del sueño', 'Dormir 7-8 horas es crucial para la recuperación muscular y el rendimiento óptimo.', 'recovery', 1),
+('Calentamiento adecuado', 'Siempre dedica 5-10 minutos a calentar antes de entrenar para prevenir lesiones.', 'ejercicio', 1),
+('Progresión gradual', 'Aumenta el peso o repeticiones gradualmente. La consistencia es más importante que la intensidad extrema.', 'ejercicio', 1),
+('Balance de macros', 'Una dieta balanceada incluye: 40% carbohidratos, 30% proteínas, 30% grasas saludables.', 'nutricion', 1),
+('Descanso activo', 'Los días de descanso son tan importantes como los de entrenamiento. Tu músculo crece durante el reposo.', 'recovery', 1),
+('Objetivos SMART', 'Define metas Específicas, Medibles, Alcanzables, Relevantes y con Tiempo límite.', 'mentalidad', 1);
 
--- Insertar ejercicios básicos
-INSERT INTO ejercicios_preestablecidos (nombre, grupo_muscular, series, repeticiones, tiempo_descanso, instrucciones, dificultad, equipamiento_necesario) VALUES
-('Press de banca', 'pecho', 3, '8-12', '2-3 min', 'Mantén los pies firmes en el suelo, baja la barra hasta el pecho controladamente.', 'intermedio', 'Banca, barra, discos'),
-('Sentadillas', 'piernas', 3, '12-15', '2-3 min', 'Baja hasta que los muslos estén paralelos al suelo, mantén la espalda recta.', 'principiante', 'Ninguno/Barra'),
-('Dominadas', 'espalda', 3, '6-10', '2-3 min', 'Cuelga con los brazos extendidos, sube hasta que la barbilla pase la barra.', 'avanzado', 'Barra de dominadas'),
-('Plancha', 'core', 3, '30-60 seg', '1-2 min', 'Mantén el cuerpo recto como una tabla, contrae el abdomen.', 'principiante', 'Ninguno'),
-('Burpees', 'fullbody', 3, '8-12', '1-2 min', 'Combinación de sentadilla, plancha, flexión y salto.', 'avanzado', 'Ninguno');
+-- Insertar ejercicios preestablecidos completos
+INSERT INTO ejercicios_preestablecidos (nombre, grupo_muscular, series, repeticiones, tiempo_descanso, instrucciones, dificultad, equipamiento_necesario, creado_por) VALUES
+-- PECHO
+('Press de banca', 'pecho', 3, '8-12', '2-3 min', 'Mantén los pies firmes en el suelo, baja la barra hasta el pecho controladamente.', 'intermedio', 'Banca, barra, discos', 1),
+('Press inclinado', 'pecho', 3, '8-12', '2-3 min', 'Ajusta la banca a 30-45 grados, mantén control del peso.', 'intermedio', 'Banca inclinada, mancuernas', 1),
+('Flexiones', 'pecho', 3, '10-20', '1-2 min', 'Mantén el cuerpo recto, baja hasta casi tocar el suelo.', 'principiante', 'Ninguno', 1),
+('Aperturas', 'pecho', 3, '12-15', '1-2 min', 'Movimiento de abrazo, siente el estiramiento en el pecho.', 'intermedio', 'Mancuernas, banca', 1),
+
+-- ESPALDA
+('Dominadas', 'espalda', 3, '6-10', '2-3 min', 'Cuelga con los brazos extendidos, sube hasta que la barbilla pase la barra.', 'avanzado', 'Barra de dominadas', 1),
+('Remo con barra', 'espalda', 3, '8-12', '2-3 min', 'Inclínate 45 grados, lleva la barra al abdomen.', 'intermedio', 'Barra, discos', 1),
+('Remo en máquina', 'espalda', 3, '10-15', '1-2 min', 'Mantén la espalda recta, aprieta los omóplatos.', 'principiante', 'Máquina de remo', 1),
+('Jalones', 'espalda', 3, '10-12', '1-2 min', 'Lleva la barra al pecho, controla el movimiento.', 'intermedio', 'Máquina de jalones', 1),
+
+-- PIERNAS
+('Sentadillas', 'piernas', 3, '12-15', '2-3 min', 'Baja hasta que los muslos estén paralelos al suelo, mantén la espalda recta.', 'principiante', 'Ninguno/Barra', 1),
+('Peso muerto', 'piernas', 3, '6-10', '3-4 min', 'Mantén la barra cerca del cuerpo, espalda recta en todo momento.', 'avanzado', 'Barra, discos', 1),
+('Prensa de piernas', 'piernas', 3, '12-15', '2-3 min', 'Baja controladamente, no bloquees completamente las rodillas.', 'intermedio', 'Máquina prensa', 1),
+('Zancadas', 'piernas', 3, '10 c/pierna', '1-2 min', 'Paso largo, baja la rodilla trasera casi al suelo.', 'intermedio', 'Mancuernas/Ninguno', 1),
+
+-- BRAZOS
+('Curl de bíceps', 'brazos', 3, '10-12', '1-2 min', 'Mantén los codos fijos, contrae el bíceps en la parte superior.', 'principiante', 'Mancuernas/Barra', 1),
+('Tríceps en banco', 'brazos', 3, '8-12', '1-2 min', 'Usa un banco, baja controladamente flexionando solo los codos.', 'intermedio', 'Banco', 1),
+('Press francés', 'brazos', 3, '10-12', '1-2 min', 'Acostado, solo mueve los antebrazos, mantén codos fijos.', 'intermedio', 'Barra EZ, banca', 1),
+('Hammer curl', 'brazos', 3, '10-12', '1-2 min', 'Curl con agarre neutro, trabaja bíceps y antebrazo.', 'principiante', 'Mancuernas', 1),
+
+-- HOMBROS
+('Press militar', 'hombros', 3, '8-12', '2-3 min', 'De pie o sentado, presiona sobre la cabeza manteniendo core activado.', 'intermedio', 'Barra/Mancuernas', 1),
+('Elevaciones laterales', 'hombros', 3, '12-15', '1-2 min', 'Eleva los brazos a los lados hasta la altura de los hombros.', 'principiante', 'Mancuernas', 1),
+('Elevaciones frontales', 'hombros', 3, '12-15', '1-2 min', 'Eleva los brazos al frente hasta la altura de los hombros.', 'principiante', 'Mancuernas', 1),
+('Remo al mentón', 'hombros', 3, '10-12', '1-2 min', 'Lleva la barra al mentón, codos más altos que las manos.', 'intermedio', 'Barra/Mancuernas', 1),
+
+-- CORE
+('Plancha', 'core', 3, '30-60 seg', '1-2 min', 'Mantén el cuerpo recto como una tabla, contrae el abdomen.', 'principiante', 'Ninguno', 1),
+('Crunches', 'core', 3, '15-25', '1 min', 'Acostado, lleva el pecho hacia las rodillas sin tirar del cuello.', 'principiante', 'Ninguno', 1),
+('Russian twists', 'core', 3, '20-30', '1 min', 'Sentado, gira el torso de lado a lado manteniendo pies elevados.', 'intermedio', 'Ninguno/Peso', 1),
+('Mountain climbers', 'core', 3, '30-45 seg', '1 min', 'En posición de plancha, alterna llevando rodillas al pecho.', 'intermedio', 'Ninguno', 1),
+
+-- CARDIO
+('Burpees', 'cardio', 3, '8-12', '1-2 min', 'Combinación de sentadilla, plancha, flexión y salto.', 'avanzado', 'Ninguno', 1),
+('Jumping jacks', 'cardio', 3, '30-60 seg', '1 min', 'Salta abriendo y cerrando piernas mientras mueves los brazos.', 'principiante', 'Ninguno', 1),
+('High knees', 'cardio', 3, '30-45 seg', '1 min', 'Corre en el lugar llevando las rodillas lo más alto posible.', 'principiante', 'Ninguno', 1),
+
+-- FULLBODY
+('Thrusters', 'fullbody', 3, '8-12', '2-3 min', 'Sentadilla + press de hombros en un solo movimiento.', 'avanzado', 'Mancuernas/Barra', 1),
+('Clean and press', 'fullbody', 3, '6-8', '3-4 min', 'Levanta la barra del suelo al pecho y luego sobre la cabeza.', 'avanzado', 'Barra, discos', 1);
+
+-- Insertar códigos de ejemplo
+CALL GenerarCodigoAsistencia('Código Diario Matutino', 'Código válido solo por hoy en horario matutino', 'dia', '06:00:00', '12:00:00', NULL, 1);
+CALL GenerarCodigoAsistencia('Código Semanal General', 'Código válido por una semana completa', 'semana', '06:00:00', '23:59:59', 100, 1);
+CALL GenerarCodigoAsistencia('Código Vespertino', 'Código para entrenamientos vespertinos', 'dia', '15:00:00', '20:00:00', 50, 1);
 
 -- Insertar estadísticas iniciales
 INSERT INTO estadisticas_gym (fecha, total_asistencias, nuevos_registros, usuarios_activos) VALUES 
 (CURDATE(), 0, 1, 1);
 
 -- =============================================
+-- FUNCIONES ADICIONALES ÚTILES
+-- =============================================
+
+-- Función para calcular IMC
+DELIMITER //
+CREATE FUNCTION CalcularIMC(peso DECIMAL(5,2), altura DECIMAL(5,2))
+RETURNS DECIMAL(4,1)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE imc DECIMAL(4,1);
+    IF altura > 0 AND peso > 0 THEN
+        SET imc = peso / POWER(altura/100, 2);
+        RETURN ROUND(imc, 1);
+    END IF;
+    RETURN NULL;
+END//
+DELIMITER ;
+
+-- Función para obtener estado de racha
+DELIMITER //
+CREATE FUNCTION EstadoRacha(id_usuario INT)
+RETURNS VARCHAR(20)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE dias_sin_asistir INT DEFAULT 0;
+    DECLARE ultima_asistencia DATE;
+    DECLARE estado VARCHAR(20) DEFAULT 'Sin datos';
+    
+    SELECT fecha_ultima_asistencia INTO ultima_asistencia 
+    FROM usuarios WHERE id = id_usuario;
+    
+    IF ultima_asistencia IS NOT NULL THEN
+        SET dias_sin_asistir = DATEDIFF(CURDATE(), ultima_asistencia);
+        
+        CASE
+            WHEN dias_sin_asistir = 0 THEN SET estado = 'Activa hoy';
+            WHEN dias_sin_asistir = 1 THEN SET estado = 'En riesgo';
+            WHEN dias_sin_asistir <= 7 THEN SET estado = 'Rota reciente';
+            ELSE SET estado = 'Inactivo';
+        END CASE;
+    END IF;
+    
+    RETURN estado;
+END//
+DELIMITER ;
+
+-- =============================================
+-- PROCEDIMIENTOS ADICIONALES
+-- =============================================
+
+-- Procedimiento para obtener estadísticas completas de un usuario
+DELIMITER //
+CREATE PROCEDURE ObtenerEstadisticasUsuario(IN p_id_usuario INT)
+BEGIN
+    SELECT 
+        u.id,
+        u.nombre,
+        u.apellido,
+        u.email,
+        u.racha_actual,
+        u.racha_maxima,
+        u.fecha_ultima_asistencia,
+        EstadoRacha(u.id) as estado_racha,
+        u.tolerancia_usada,
+        u.fecha_tolerancia,
+        COUNT(DISTINCT a.fecha) as total_asistencias,
+        COUNT(DISTINCT CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN a.fecha END) as asistencias_ultimo_mes,
+        COUNT(DISTINCT CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN a.fecha END) as asistencias_ultima_semana,
+        COUNT(DISTINCT rc.fecha) as dias_registro_comida,
+        COUNT(rc.id) as total_comidas_registradas,
+        AVG(CASE WHEN m.peso IS NOT NULL THEN m.peso END) as peso_promedio,
+        CalcularIMC(
+            (SELECT peso FROM medidas WHERE id_usuario = p_id_usuario ORDER BY fecha_medicion DESC LIMIT 1),
+            (SELECT altura FROM medidas WHERE id_usuario = p_id_usuario ORDER BY fecha_medicion DESC LIMIT 1)
+        ) as imc_actual,
+        COUNT(DISTINCT uca.fecha_uso) as dias_uso_codigos
+    FROM usuarios u
+    LEFT JOIN asistencias a ON u.id = a.id_usuario
+    LEFT JOIN registro_comidas rc ON u.id = rc.id_usuario
+    LEFT JOIN medidas m ON u.id = m.id_usuario
+    LEFT JOIN uso_codigos_asistencia uca ON u.id = uca.id_usuario
+    WHERE u.id = p_id_usuario
+    GROUP BY u.id;
+END//
+DELIMITER ;
+
+-- Procedimiento para renovar códigos expirados automáticamente
+DELIMITER //
+CREATE PROCEDURE RenovarCodigosPopulares()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE v_id INT;
+    DECLARE v_nombre VARCHAR(100);
+    DECLARE v_descripcion TEXT;
+    DECLARE v_tipo_duracion ENUM('dia', 'semana');
+    DECLARE v_hora_inicio TIME;
+    DECLARE v_hora_fin TIME;
+    DECLARE v_limite_usos INT;
+    DECLARE v_creado_por INT;
+    DECLARE v_usos_totales INT;
+    
+    DECLARE cursor_codigos CURSOR FOR
+        SELECT id, nombre_codigo, descripcion, tipo_duracion, hora_inicio, hora_fin, limite_usos, creado_por, usos_totales
+        FROM codigos_asistencia 
+        WHERE activo = FALSE 
+        AND fecha_expiracion >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        AND usos_totales >= 10; -- Solo renovar códigos que fueron populares
+        
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN cursor_codigos;
+    
+    read_loop: LOOP
+        FETCH cursor_codigos INTO v_id, v_nombre, v_descripcion, v_tipo_duracion, v_hora_inicio, v_hora_fin, v_limite_usos, v_creado_por, v_usos_totales;
+        
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Crear nuevo código similar
+        CALL GenerarCodigoAsistencia(
+            CONCAT(v_nombre, ' (Renovado)'),
+            CONCAT(v_descripcion, ' - Código renovado automáticamente'),
+            v_tipo_duracion,
+            v_hora_inicio,
+            v_hora_fin,
+            v_limite_usos,
+            v_creado_por
+        );
+        
+    END LOOP;
+    
+    CLOSE cursor_codigos;
+    
+    SELECT 'Códigos populares renovados exitosamente' as mensaje;
+END//
+DELIMITER ;
+
+-- Procedimiento para backup de datos importantes
+DELIMITER //
+CREATE PROCEDURE BackupDatosImportantes()
+BEGIN
+    -- Crear tabla temporal con resumen de datos importantes
+    CREATE TEMPORARY TABLE IF NOT EXISTS backup_resumen (
+        fecha_backup DATE,
+        total_usuarios INT,
+        total_asistencias INT,
+        total_comidas INT,
+        usuarios_activos_mes INT,
+        codigos_activos INT,
+        racha_promedio DECIMAL(5,2)
+    );
+    
+    INSERT INTO backup_resumen
+    SELECT 
+        CURDATE(),
+        COUNT(DISTINCT u.id),
+        COUNT(DISTINCT a.id),
+        COUNT(DISTINCT rc.id),
+        COUNT(DISTINCT CASE WHEN a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN a.id_usuario END),
+        COUNT(DISTINCT CASE WHEN ca.activo = TRUE THEN ca.id END),
+        AVG(u.racha_actual)
+    FROM usuarios u
+    LEFT JOIN asistencias a ON u.id = a.id_usuario
+    LEFT JOIN registro_comidas rc ON u.id = rc.id_usuario
+    LEFT JOIN codigos_asistencia ca ON ca.activo = TRUE
+    WHERE u.activo = TRUE;
+    
+    SELECT * FROM backup_resumen;
+    DROP TEMPORARY TABLE backup_resumen;
+END//
+DELIMITER ;
+
+-- =============================================
+-- ÍNDICES ADICIONALES PARA OPTIMIZACIÓN
+-- =============================================
+
+-- Índices adicionales para mejorar rendimiento
+CREATE INDEX idx_asistencias_fecha_metodo ON asistencias(fecha, metodo_registro);
+CREATE INDEX idx_usuarios_objetivo_activo ON usuarios(objetivo, activo);
+CREATE INDEX idx_registro_comidas_fecha_comida ON registro_comidas(fecha, comida);
+CREATE INDEX idx_alimentos_grupo_activo ON alimentos(id_grupo, activo);
+CREATE INDEX idx_medidas_usuario_fecha_peso ON medidas(id_usuario, fecha_medicion, peso);
+CREATE INDEX idx_tips_categoria_activo ON tips(categoria, activo);
+CREATE INDEX idx_ejercicios_grupo_dificultad ON ejercicios_preestablecidos(grupo_muscular, dificultad);
+
+-- =============================================
+-- TRIGGERS ADICIONALES PARA INTEGRIDAD
+-- =============================================
+
+-- Trigger para validar datos de medidas
+DELIMITER //
+CREATE TRIGGER validar_medidas
+BEFORE INSERT ON medidas
+FOR EACH ROW
+BEGIN
+    -- Validar rangos lógicos
+    IF NEW.peso IS NOT NULL AND (NEW.peso < 30 OR NEW.peso > 300) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Peso fuera del rango válido (30-300 kg)';
+    END IF;
+    
+    IF NEW.altura IS NOT NULL AND (NEW.altura < 100 OR NEW.altura > 250) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Altura fuera del rango válido (100-250 cm)';
+    END IF;
+    
+    IF NEW.grasa_corporal IS NOT NULL AND (NEW.grasa_corporal < 3 OR NEW.grasa_corporal > 50) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Porcentaje de grasa corporal fuera del rango válido (3-50%)';
+    END IF;
+END//
+DELIMITER ;
+
+-- Trigger para validar objetivos nutricionales
+DELIMITER //
+CREATE TRIGGER validar_objetivos_nutricionales
+BEFORE INSERT ON objetivos_nutricionales
+FOR EACH ROW
+BEGIN
+    -- Desactivar objetivos anteriores
+    UPDATE objetivos_nutricionales 
+    SET activo = FALSE 
+    WHERE id_usuario = NEW.id_usuario AND activo = TRUE;
+    
+    -- Validar rangos lógicos
+    IF NEW.calorias_objetivo < 800 OR NEW.calorias_objetivo > 5000 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Calorías objetivo fuera del rango válido (800-5000)';
+    END IF;
+END//
+DELIMITER ;
+
+-- =============================================
+-- EVENTOS ADICIONALES
+-- =============================================
+
+-- Evento para generar reportes semanales
+DELIMITER //
+CREATE EVENT IF NOT EXISTS reporte_semanal
+ON SCHEDULE EVERY 1 WEEK
+STARTS '2024-01-01 08:00:00'
+DO
+BEGIN
+    -- Actualizar estadísticas semanales
+    INSERT INTO estadisticas_gym (fecha, usuarios_activos)
+    SELECT 
+        CURDATE(),
+        COUNT(DISTINCT a.id_usuario)
+    FROM asistencias a
+    WHERE a.fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    ON DUPLICATE KEY UPDATE
+        usuarios_activos = VALUES(usuarios_activos);
+        
+    -- Renovar códigos populares automáticamente
+    CALL RenovarCodigosPopulares();
+END//
+DELIMITER ;
+
+-- =============================================
+-- VISTAS ADICIONALES PARA REPORTES
+-- =============================================
+
+-- Vista para reporte de uso de códigos
+CREATE OR REPLACE VIEW vista_reporte_codigos AS
+SELECT 
+    ca.codigo,
+    ca.nombre_codigo,
+    ca.tipo_duracion,
+    ca.fecha_inicio,
+    ca.fecha_expiracion,
+    ca.usos_totales,
+    ca.limite_usos,
+    COUNT(DISTINCT uca.id_usuario) as usuarios_unicos,
+    AVG(TIME_TO_SEC(uca.hora_uso)) / 3600 as hora_promedio_uso,
+    CASE 
+        WHEN ca.activo = TRUE AND ca.fecha_expiracion >= CURDATE() THEN 'Activo'
+        WHEN ca.fecha_expiracion < CURDATE() THEN 'Expirado'
+        ELSE 'Inactivo'
+    END as estado,
+    u.nombre as creador
+FROM codigos_asistencia ca
+LEFT JOIN uso_codigos_asistencia uca ON ca.id = uca.id_codigo
+LEFT JOIN usuarios u ON ca.creado_por = u.id
+GROUP BY ca.id
+ORDER BY ca.fecha_creacion DESC;
+
+-- Vista para análisis de patrones de asistencia
+CREATE OR REPLACE VIEW vista_patrones_asistencia AS
+SELECT 
+    DAYNAME(a.fecha) as dia_semana,
+    HOUR(a.hora_entrada) as hora,
+    COUNT(*) as total_asistencias,
+    COUNT(DISTINCT a.id_usuario) as usuarios_unicos,
+    AVG(a.duracion_minutos) as duracion_promedio,
+    COUNT(CASE WHEN a.metodo_registro = 'qr_personal' THEN 1 END) as qr_personal,
+    COUNT(CASE WHEN a.metodo_registro = 'qr_gimnasio' THEN 1 END) as qr_gimnasio,
+    COUNT(CASE WHEN a.metodo_registro = 'codigo_temporal' THEN 1 END) as codigo_temporal,
+    COUNT(CASE WHEN a.metodo_registro = 'admin_manual' THEN 1 END) as admin_manual
+FROM asistencias a
+WHERE a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+GROUP BY DAYNAME(a.fecha), HOUR(a.hora_entrada)
+ORDER BY 
+    FIELD(dia_semana, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+    hora;
+
+-- Vista para top alimentos por calorías
+CREATE OR REPLACE VIEW vista_top_alimentos_calorias AS
+SELECT 
+    a.nombre,
+    a.marca,
+    ga.nombre as grupo,
+    a.calorias_100,
+    a.proteinas_100,
+    a.carbohidratos_100,
+    a.grasas_100,
+    COUNT(rc.id) as veces_consumido,
+    SUM(rc.cantidad) as cantidad_total_gramos,
+    SUM((rc.cantidad / 100) * a.calorias_100) as calorias_totales_consumidas
+FROM alimentos a
+JOIN grupos_alimentos ga ON a.id_grupo = ga.id
+LEFT JOIN registro_comidas rc ON a.id = rc.id_alimento
+WHERE a.activo = TRUE
+GROUP BY a.id
+HAVING veces_consumido > 0
+ORDER BY calorias_totales_consumidas DESC
+LIMIT 25;
+
+-- =============================================
 -- MENSAJE DE FINALIZACIÓN
 -- =============================================
 
-SELECT 'Base de datos simplificada creada exitosamente' as mensaje,
-       'Estructura optimizada para:' as optimizada_para,
-       '✓ Alimentos con grupos y macros por 100g/ml' as feature1,
-       '✓ Persistencia de alimentos más consumidos por usuario' as feature2,
-       '✓ Cálculos de macros manejados en frontend (JS/PHP)' as feature3,
-       '✓ Estructura simple y eficiente' as feature4,
-       '✓ Fácil mantenimiento y escalabilidad' as feature5;
+SELECT 
+    '🎉 BASE DE DATOS FUSIONADA CREADA EXITOSAMENTE 🎉' as mensaje,
+    '' as separador1,
+    '📊 CARACTERÍSTICAS PRINCIPALES:' as titulo_caracteristicas,
+    '✅ Sistema completo de usuarios con QR personal' as feature1,
+    '✅ Códigos de asistencia temporales (día/semana)' as feature2,
+    '✅ Sistema de rachas con tolerancia configurable' as feature3,
+    '✅ Base de datos de alimentos simplificada' as feature4,
+    '✅ Registro de comidas y seguimiento nutricional' as feature5,
+    '✅ Ejercicios preestablecidos y rutinas' as feature6,
+    '✅ Estadísticas completas y rankings' as feature7,
+    '✅ Múltiples métodos de registro de asistencia' as feature8,
+    '✅ Historial completo de acciones administrativas' as feature9,
+    '✅ Vistas optimizadas para consultas frecuentes' as feature10,
+    '✅ Eventos automáticos para mantenimiento' as feature11,
+    '' as separador2,
+    '🔧 PROCEDIMIENTOS DISPONIBLES:' as titulo_procedimientos,
+    '• GenerarCodigoAsistencia()' as proc1,
+    '• RegistrarAsistenciaCompleta()' as proc2,
+    '• LimpiarCodigosExpirados()' as proc3,
+    '• ObtenerEstadisticasUsuario()' as proc4,
+    '• RenovarCodigosPopulares()' as proc5,
+    '• BackupDatosImportantes()' as proc6,
+    '' as separador3,
+    '👁️ VISTAS PRINCIPALES:' as titulo_vistas,
+    '• vista_codigos_activos' as vista1,
+    '• vista_estadisticas_usuario' as vista2,
+    '• vista_ranking_usuarios' as vista3,
+    '• vista_dashboard_stats' as vista4,
+    '• vista_alimentos_populares' as vista5,
+    '• vista_patrones_asistencia' as vista6,
+    '• vista_reporte_codigos' as vista7,
+    '' as separador4,
+    '🚀 ¡LISTO PARA USAR!' as estado;

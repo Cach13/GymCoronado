@@ -2,12 +2,14 @@
 
 require_once 'config/config.php';
 require_once 'config/User.php';
+require_once 'config/GymAttendanceManager.php';
 
 // Verificar permisos de administrador
 gym_check_permission('admin');
 
 $user = new User();
 $db = new Database();
+$attendanceManager = new GymAttendanceManager();
 
 // Procesar acciones AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -36,12 +38,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             exit;
             
+      case 'add_quick_attendance':
+    try {
+        // Registro rápido de asistencia para hoy
+        $userId = intval($_POST['user_id']);
+        $adminId = $_SESSION['user_id'];
+        $fecha = date('Y-m-d');
+        
+        error_log("Iniciando registro de asistencia - Usuario: $userId, Admin: $adminId, Fecha: $fecha");
+        
+        // Verificar que el usuario existe y está activo
+        $db->query('SELECT id, nombre, apellido FROM usuarios WHERE id = :id AND activo = 1');
+        $db->bind(':id', $userId);
+        $usuario = $db->single();
+        
+        if (!$usuario) {
+            error_log("Usuario no encontrado o inactivo - ID: $userId");
+            echo json_encode(['success' => false, 'message' => 'Usuario no encontrado o inactivo']);
+            exit;
+        }
+        
+        // Verificar si ya tiene asistencia hoy (usando el UNIQUE constraint)
+        $db->query('SELECT id FROM asistencias WHERE id_usuario = :id AND DATE(fecha) = :fecha');
+        $db->bind(':id', $userId);
+        $db->bind(':fecha', $fecha);
+        $asistenciaHoy = $db->single();
+        
+        if ($asistenciaHoy) {
+            error_log("Usuario ya tiene asistencia hoy - ID: $userId");
+            echo json_encode(['success' => false, 'message' => 'El usuario ya tiene asistencia registrada hoy']);
+            exit;
+        }
+        
+        // Iniciar transacción
+        $db->beginTransaction();
+        
+        // Insertar asistencia con la estructura correcta
+        $db->query("
+            INSERT INTO asistencias 
+            (
+                id_usuario, 
+                fecha, 
+                hora_entrada, 
+                metodo_registro, 
+                registrado_por, 
+                tolerancia_aplicada, 
+                validacion_admin, 
+                notas
+            ) 
+            VALUES 
+            (
+                :id_usuario, 
+                :fecha, 
+                NOW(), 
+                'admin_manual', 
+                :registrado_por, 
+                FALSE, 
+                TRUE, 
+                'Registrado manualmente por administrador'
+            )
+        ");
+        $db->bind(':id_usuario', $userId);
+        $db->bind(':fecha', $fecha);
+        $db->bind(':registrado_por', $adminId);
+        
+        if (!$db->execute()) {
+            throw new Exception('Error al insertar asistencia en la base de datos');
+        }
+        
+        $asistenciaId = $db->lastInsertId();
+        error_log("Asistencia insertada correctamente - ID: $asistenciaId");
+        
+        // Actualizar fecha_ultima_asistencia del usuario
+        $db->query("UPDATE usuarios SET fecha_ultima_asistencia = :fecha WHERE id = :id");
+        $db->bind(':fecha', $fecha);
+        $db->bind(':id', $userId);
+        $db->execute();
+        
+        // Confirmar transacción
+        $db->endTransaction();
+        
+        error_log("Asistencia registrada exitosamente para usuario $userId");
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => "Asistencia registrada para {$usuario['nombre']} {$usuario['apellido']}",
+            'asistencia_id' => $asistenciaId,
+            'fecha' => $fecha,
+            'hora' => date('H:i:s')
+        ]);
+        
+    } catch (Exception $e) {
+        // Rollback en caso de error
+        if (isset($db)) {
+            $db->cancelTransaction();
+        }
+        
+        error_log("Error registrando asistencia - Usuario: $userId, Error: " . $e->getMessage());
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Error al registrar asistencia: ' . $e->getMessage()
+        ]);
+    }
+    exit;
+            
         case 'delete_user':
             try {
                 $db->beginTransaction();
                 
                 // 1. Primero eliminar registros en tablas que referencian al usuario
                 $tablesToClean = [
+                    'asistencias' => 'id_usuario',
+                    'uso_codigos_asistencia' => 'id_usuario',
                     'medidas' => 'id_usuario',
                     'rachas' => 'id_usuario',
                     'registro_comidas' => 'id_usuario',
@@ -127,20 +235,24 @@ function getDashboardMetrics($db) {
     ];
 }
 
-// Obtener lista de usuarios (sin joins a vistas eliminadas)
+// Obtener lista de usuarios con información de asistencias
 function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     $offset = ($page - 1) * $limit;
     
-    $query = 'SELECT id, email, nombre, apellido, telefono, tipo, activo, puede_acceder, fecha_registro
-              FROM usuarios';
-    $countQuery = 'SELECT COUNT(*) as total FROM usuarios';
+    $query = 'SELECT u.id, u.email, u.nombre, u.apellido, u.telefono, u.tipo, u.activo, u.puede_acceder, u.fecha_registro,
+                 u.racha_actual, u.racha_maxima, u.fecha_ultima_asistencia,
+                 (SELECT COUNT(*) FROM asistencias a WHERE a.id_usuario = u.id) as total_asistencias,
+                 (SELECT COUNT(*) FROM asistencias a WHERE a.id_usuario = u.id AND a.fecha = CURDATE()) as asistencia_hoy
+          FROM usuarios u';
+
+    $countQuery = 'SELECT COUNT(*) as total FROM usuarios u';
     
     if ($tipo && $tipo !== 'todos') {
-        $query .= ' WHERE tipo = :tipo';
-        $countQuery .= ' WHERE tipo = :tipo';
+        $query .= ' WHERE u.tipo = :tipo';
+        $countQuery .= ' WHERE u.tipo = :tipo';
     }
     
-    $query .= ' ORDER BY fecha_registro DESC LIMIT :limit OFFSET :offset';
+    $query .= ' ORDER BY u.fecha_registro DESC LIMIT :limit OFFSET :offset';
     
     $db->query($query);
     if ($tipo && $tipo !== 'todos') {
@@ -159,6 +271,8 @@ function getUsuarios($db, $tipo = null, $page = 1, $limit = 10) {
     return ['usuarios' => $usuarios, 'total' => $total];
 }
 
+
+
 // Datos para la vista
 $metrics = getDashboardMetrics($db);
 $tipoFiltro = $_GET['tipo'] ?? 'todos';
@@ -176,6 +290,59 @@ $currentUser = gym_get_logged_in_user();
     <title>Panel de Administración - <?php echo SITE_NAME; ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
     <link href="assets/css/admin.css" rel="stylesheet" />
+    <style>
+        .attendance-info {
+            font-size: 0.85em;
+            color: #666;
+        }
+        .racha-badge {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 5px;
+        }
+        .racha-badge.zero {
+            background: #999;
+        }
+        .attendance-today {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn-loading {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .btn-loading:after {
+            content: "";
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-left: 5px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -238,6 +405,9 @@ $currentUser = gym_get_logged_in_user();
                     <a href="admin/tips.php" class="btn btn-secondary">
                         <i class="fas fa-lightbulb"></i> Gestionar Tips
                     </a>
+                     <a href="admin/codigos.php" class="btn btn-secondary">
+                        <i class="fas fa-qrcode"></i> Gestionar Asistencias
+                    </a>
                 </div>
             </div>
 
@@ -261,6 +431,7 @@ $currentUser = gym_get_logged_in_user();
                             <th>Teléfono</th>
                             <th>Tipo</th>
                             <th>Estado</th>
+                            <th>Asistencias</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
                         </tr>
@@ -269,7 +440,17 @@ $currentUser = gym_get_logged_in_user();
                         <?php foreach ($usuariosData['usuarios'] as $usuario): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($usuario['id']); ?></td>
-                            <td><?php echo htmlspecialchars($usuario['nombre'] . ' ' . $usuario['apellido']); ?></td>
+                            <td>
+                                <?php echo htmlspecialchars($usuario['nombre'] . ' ' . $usuario['apellido']); ?>
+                                <?php if ($usuario['tipo'] === 'cliente'): ?>
+                                    <div class="attendance-info">
+                                        Racha: <?php echo intval($usuario['racha_actual']); ?> días
+                                        <span class="racha-badge <?php echo $usuario['racha_actual'] == 0 ? 'zero' : ''; ?>">
+                                            Max: <?php echo intval($usuario['racha_maxima']); ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo htmlspecialchars($usuario['email']); ?></td>
                             <td><?php echo !empty($usuario['telefono']) ? htmlspecialchars($usuario['telefono']) : 'No especificado'; ?></td>
                             <td>
@@ -282,9 +463,37 @@ $currentUser = gym_get_logged_in_user();
                                     <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
                                 </span>
                             </td>
+                            <td>
+                                <?php if ($usuario['tipo'] === 'cliente'): ?>
+                                    <div class="attendance-info">
+                                        Total: <?php echo intval($usuario['total_asistencias']); ?>
+                                        <?php if ($usuario['asistencia_hoy'] > 0): ?>
+                                            <br><span class="attendance-today">✓ Asistió hoy</span>
+                                        <?php elseif ($usuario['fecha_ultima_asistencia']): ?>
+                                            <br><small>Última: <?php echo date('d/m/Y', strtotime($usuario['fecha_ultima_asistencia'])); ?></small>
+                                        <?php else: ?>
+                                            <br><small>Sin asistencias</small>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span style="color: #999;">N/A</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo date('d/m/Y', strtotime($usuario['fecha_registro'])); ?></td>
                             <td>
                                 <div class="action-buttons">
+                                    <?php if ($usuario['tipo'] === 'cliente'): ?>
+                                        <?php if ($usuario['asistencia_hoy'] > 0): ?>
+                                            <button class="btn btn-success btn-sm" disabled title="Ya asistió hoy">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <button class="btn btn-primary btn-sm" onclick="addQuickAttendance(<?php echo intval($usuario['id']); ?>, this)" 
+                                                    title="Registrar asistencia hoy">
+                                                <i class="fas fa-calendar-plus"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                     <button class="btn btn-warning btn-sm" onclick="toggleUserStatus(<?php echo intval($usuario['id']); ?>)" 
                                             title="Cambiar estado">
                                         <i class="fas fa-toggle-<?php echo $usuario['activo'] ? 'on' : 'off'; ?>"></i>
@@ -317,9 +526,6 @@ $currentUser = gym_get_logged_in_user();
             <?php endif; ?>
         </div>
     </div>
-</body>
-</html>
-
 
     <!-- Modal para crear usuario -->
     <div id="createUserModal" class="modal">
@@ -378,7 +584,6 @@ $currentUser = gym_get_logged_in_user();
         </div>
     </div>
 
-
-    <script src="/assets/js/admin.js"></script>
+    <script src="assets/js/admin.js"></script>
 </body>
 </html>
