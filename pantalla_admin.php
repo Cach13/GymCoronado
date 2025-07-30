@@ -236,59 +236,7 @@ $currentUser = gym_get_logged_in_user();
     <title>Panel de Administración - <?php echo SITE_NAME; ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
     <link href="assets/css/admin.css" rel="stylesheet" />
-    <style>
-        .attendance-info {
-            font-size: 0.85em;
-            color: #666;
-        }
-        .racha-badge {
-            display: inline-block;
-            background: #4CAF50;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            margin-left: 5px;
-        }
-        .racha-badge.zero {
-            background: #999;
-        }
-        .attendance-today {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .btn-loading {
-            pointer-events: none;
-            opacity: 0.6;
-        }
-        .btn-loading:after {
-            content: "";
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            margin-left: 5px;
-            border: 2px solid transparent;
-            border-top-color: currentColor;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+
 </head>
 <body>
     <header class="header">
@@ -377,6 +325,7 @@ $currentUser = gym_get_logged_in_user();
                             <th>Teléfono</th>
                             <th>Tipo</th>
                             <th>Estado</th>
+                            <th>Acceso</th>
                             <th>Asistencias</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
@@ -407,6 +356,11 @@ $currentUser = gym_get_logged_in_user();
                             <td>
                                 <span class="status-badge <?php echo $usuario['activo'] ? 'status-active' : 'status-inactive'; ?>">
                                     <?php echo $usuario['activo'] ? 'Activo' : 'Inactivo'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="access-badge <?php echo $usuario['puede_acceder'] ? 'access-allowed' : 'access-denied'; ?>">
+                                    <?php echo $usuario['puede_acceder'] ? 'Permitido' : 'Bloqueado'; ?>
                                 </span>
                             </td>
                             <td>
@@ -445,8 +399,8 @@ $currentUser = gym_get_logged_in_user();
                                         <i class="fas fa-toggle-<?php echo $usuario['activo'] ? 'on' : 'off'; ?>"></i>
                                     </button>
                                     <button class="btn btn-info btn-sm" onclick="toggleAccessStatus(<?php echo intval($usuario['id']); ?>)" 
-                                            title="Cambiar acceso">
-                                        <i class="fas fa-key"></i>
+                                            title="<?php echo $usuario['puede_acceder'] ? 'Revocar acceso' : 'Permitir acceso'; ?>">
+                                        <i class="fas fa-<?php echo $usuario['puede_acceder'] ? 'lock-open' : 'lock'; ?>"></i>
                                     </button>
                                     <button class="btn btn-danger btn-sm" onclick="deleteUser(<?php echo intval($usuario['id']); ?>)" 
                                             title="Eliminar usuario">

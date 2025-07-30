@@ -244,14 +244,7 @@ $alert = gym_get_alert();
                             </a>
                         </div>
 
-                        <!-- Demo credentials -->
-                        <div class="mt-4 p-3 bg-light rounded">
-                            <small class="text-muted">
-                                <strong>Credenciales de prueba:</strong><br>
-                                <strong>Admin:</strong> admin@gym.com / admin123<br>
-                                <strong>Cliente:</strong> cliente@gym.com / cliente123<br>
-                            </small>
-                        </div>
+                        
                     </div>
                 </div>
             </div>

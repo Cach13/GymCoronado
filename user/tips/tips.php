@@ -96,14 +96,14 @@ function obtener_icono_categoria($categoria) {
 // Función para obtener color de categoría - Paleta azul
 function obtener_color_categoria($categoria) {
     $colores = [
-        'nutricion' => 'bg-blue-100 text-blue-800',
-        'ejercicio' => 'bg-indigo-100 text-indigo-800',
-        'mentalidad' => 'bg-sky-100 text-sky-800',
-        'recovery' => 'bg-cyan-100 text-cyan-800',
-        'general' => 'bg-slate-100 text-slate-800'
+        'nutricion' => 'category-nutricion',
+        'ejercicio' => 'category-ejercicio',
+        'mentalidad' => 'category-mentalidad',
+        'recovery' => 'category-recovery',
+        'general' => 'category-general'
     ];
     
-    return $colores[$categoria] ?? 'bg-blue-100 text-blue-800';
+    return $colores[$categoria] ?? 'category-general';
 }
 
 $usuario_actual = gym_get_logged_in_user();
@@ -115,60 +115,589 @@ $usuario_actual = gym_get_logged_in_user();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tips de Entrenamiento - <?php echo SITE_NAME; ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            color: #1e40af;
+            padding-top: 120px; /* Espaciado para el header fijo */
+        }
+
+        /* Header con efecto glass mejorado */
+        .glass-header {
+            background: linear-gradient(135deg, rgb(20, 66, 233) 0%, rgba(52, 76, 161, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 100px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-section img {
+            height: 60px;
+            width: auto;
+        }
+
+        .site-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 0;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-decoration: none;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Contenedor principal */
+        .main-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* Filtros y búsqueda */
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid #dbeafe;
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        @media (min-width: 768px) {
+            .filter-row {
+                flex-direction: row;
+            }
+        }
+
+        .search-container {
+            flex: 1;
+        }
+
+        .category-container {
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .category-container {
+                width: 256px;
+            }
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d4ed8;
+            margin-bottom: 8px;
+        }
+
+        .form-label i {
+            margin-right: 8px;
+        }
+
+        .search-input-container {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            padding-left: 40px;
+            border: 2px solid #bfdbfe;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #60a5fa;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #bfdbfe;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-filter, .btn-clear {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-filter {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-filter:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(100, 116, 139, 0.2);
+        }
+
+        .btn-clear:hover {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            box-shadow: 0 10px 15px -3px rgba(100, 116, 139, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Estadísticas rápidas */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        .stat-card {
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-total {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .stat-nutricion {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        }
+
+        .stat-ejercicio {
+            background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+        }
+
+        .stat-mentalidad {
+            background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        }
+
+        .stat-recovery {
+            background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+        }
+
+        .stat-general {
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-large {
+            font-size: 48px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .stat-emoji {
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        /* Resultados */
+        .results-info {
+            margin-bottom: 24px;
+            color: #1d4ed8;
+            font-weight: 500;
+        }
+
+        .results-highlight {
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+
+        /* Lista de tips */
+        .tips-grid {
+            display: grid;
+            gap: 32px;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 768px) {
+            .tips-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .tips-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .tip-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);
+            border: 1px solid #dbeafe;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .tip-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.15);
+            border-color: #bfdbfe;
+            transform: translateY(-4px);
+        }
+
+        .tip-header {
+            padding: 24px 24px 16px;
+        }
+
+        .tip-meta {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid;
+            border-opacity: 0.2;
+        }
+
+        .category-nutricion {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border-color: #1e40af;
+        }
+
+        .category-ejercicio {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            border-color: #3730a3;
+        }
+
+        .category-mentalidad {
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            border-color: #0c4a6e;
+        }
+
+        .category-recovery {
+            background-color: #cffafe;
+            color: #164e63;
+            border-color: #164e63;
+        }
+
+        .category-general {
+            background-color: #f1f5f9;
+            color: #334155;
+            border-color: #334155;
+        }
+
+        .tip-date {
+            font-size: 12px;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+
+        .tip-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tip-content {
+            padding: 0 24px 16px;
+        }
+
+        .tip-text {
+            color: #1d4ed8;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .tip-content-full {
+            display: none;
+        }
+
+        .tip-content-full.show {
+            display: block;
+        }
+
+        .tip-content-preview.hide {
+            display: none;
+        }
+
+        .toggle-content {
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .toggle-content:hover {
+            color: #1d4ed8;
+        }
+
+        .tip-footer {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            border-top: 1px solid #dbeafe;
+        }
+
+        .tip-author {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #2563eb;
+        }
+
+        .tip-author i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+
+        /* Estado vacío */
+        .empty-state {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);
+            padding: 48px;
+            text-align: center;
+            border: 1px solid #dbeafe;
+        }
+
+        .empty-icon {
+            font-size: 96px;
+            color: #bfdbfe;
+            margin-bottom: 24px;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e3a8a;
+            margin-bottom: 12px;
+        }
+
+        .empty-text {
+            color: #2563eb;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 767px) {
+            .main-container {
+                padding: 0 12px;
+            }
+            
+            .filter-section {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .tip-header, .tip-content, .tip-footer {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+            
+            .site-title {
+                font-size: 1.4rem;
+            }
+            
+            .header-container {
+                padding: 0 12px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <!-- Header -->
-    <header class="bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
-                <div class="flex items-center">
-                    <a href="/dashboard.php" class="text-blue-100 hover:text-white mr-4 transition-colors">
-                        <i class="fas fa-arrow-left text-lg"></i>
-                    </a>
-                    <h1 class="text-3xl font-bold text-white">Tips de Entrenamiento</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-blue-100">
-                        Hola, <strong class="text-white"><?php echo htmlspecialchars($usuario_actual['nombre']); ?></strong>
-                    </span>
-                </div>
+
+<body>
+    <!-- Header con efecto glass mejorado -->
+    <header class="glass-header">
+        <div class="header-container">
+            <!-- Logo y título -->
+            <div class="logo-section">
+                <img src="/assets/images/gym (1).png" alt="Logo">
+                <h1 class="site-title">Tips de Entrenamiento</h1>
+            </div>
+            
+            <!-- Botones -->
+            <div class="header-buttons">
+                <a href="/dashboard.php" class="btn-back">
+                    <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
+                    <span>Volver</span>
+                </a>
             </div>
         </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="main-container">
         <!-- Filtros y búsqueda -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-blue-100">
-            <form method="GET" class="space-y-4">
-                <div class="flex flex-col md:flex-row gap-4">
+        <div class="filter-section">
+            <form method="GET" class="filter-form">
+                <div class="filter-row">
                     <!-- Búsqueda -->
-                    <div class="flex-1">
-                        <label class="block text-sm font-medium text-blue-700 mb-2">
-                            <i class="fas fa-search mr-2"></i>Buscar tips
+                    <div class="search-container">
+                        <label class="form-label">
+                            <i class="fas fa-search"></i>Buscar tips
                         </label>
-                        <div class="relative">
+                        <div class="search-input-container">
                             <input 
                                 type="text" 
                                 name="buscar" 
                                 value="<?php echo htmlspecialchars($busqueda); ?>"
                                 placeholder="Buscar por título o contenido..."
-                                class="w-full pl-10 pr-4 py-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                class="form-input"
                             >
-                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                            <i class="fas fa-search search-icon"></i>
                         </div>
                     </div>
                     
                     <!-- Filtro por categoría -->
-                    <div class="md:w-64">
-                        <label class="block text-sm font-medium text-blue-700 mb-2">
-                            <i class="fas fa-filter mr-2"></i>Categoría
+                    <div class="category-container">
+                        <label class="form-label">
+                            <i class="fas fa-filter"></i>Categoría
                         </label>
-                        <select 
-                            name="categoria" 
-                            class="w-full px-3 py-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        >
+                        <select name="categoria" class="form-select">
                             <option value="todas" <?php echo $categoria_seleccionada === 'todas' ? 'selected' : ''; ?>>
                                 Todas las categorías
                             </option>
@@ -191,19 +720,13 @@ $usuario_actual = gym_get_logged_in_user();
                     </div>
                 </div>
                 
-                <div class="flex gap-2">
-                    <button 
-                        type="submit"
-                        class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                        <i class="fas fa-filter mr-2"></i>
+                <div class="button-row">
+                    <button type="submit" class="btn-filter">
+                        <i class="fas fa-filter" style="margin-right: 8px;"></i>
                         Filtrar
                     </button>
-                    <a 
-                        href="tips.php"
-                        class="bg-gradient-to-r from-slate-500 to-slate-600 text-white px-6 py-3 rounded-lg hover:from-slate-600 hover:to-slate-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                        <i class="fas fa-times mr-2"></i>
+                    <a href="tips.php" class="btn-clear">
+                        <i class="fas fa-times" style="margin-right: 8px;"></i>
                         Limpiar
                     </a>
                 </div>
@@ -211,49 +734,57 @@ $usuario_actual = gym_get_logged_in_user();
         </div>
 
         <!-- Estadísticas rápidas -->
-        <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-center text-white">
-                <div class="text-3xl font-bold"><?php echo array_sum($conteos); ?></div>
-                <div class="text-sm text-blue-100">Total Tips</div>
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-number stat-large"><?php echo array_sum($conteos); ?></div>
+                <div class="stat-label">Total Tips</div>
             </div>
-            <?php 
-            $gradient_colors = [
-                'nutricion' => 'from-blue-400 to-blue-500',
-                'ejercicio' => 'from-indigo-400 to-indigo-500',
-                'mentalidad' => 'from-sky-400 to-sky-500',
-                'recovery' => 'from-cyan-400 to-cyan-500',
-                'general' => 'from-slate-400 to-slate-500'
-            ];
-            foreach (['nutricion', 'ejercicio', 'mentalidad', 'recovery', 'general'] as $cat): ?>
-                <div class="bg-gradient-to-br <?php echo $gradient_colors[$cat]; ?> p-6 rounded-xl shadow-lg text-center text-white hover:shadow-xl transition-shadow">
-                    <div class="text-2xl mb-1"><?php echo obtener_icono_categoria($cat); ?></div>
-                    <div class="text-2xl font-bold"><?php echo $conteos[$cat] ?? 0; ?></div>
-                    <div class="text-xs text-white opacity-90"><?php echo formatear_categoria($cat); ?></div>
-                </div>
-            <?php endforeach; ?>
+            <div class="stat-card stat-nutricion">
+                <div class="stat-emoji">🥗</div>
+                <div class="stat-number"><?php echo $conteos['nutricion'] ?? 0; ?></div>
+                <div class="stat-label">Nutrición</div>
+            </div>
+            <div class="stat-card stat-ejercicio">
+                <div class="stat-emoji">💪</div>
+                <div class="stat-number"><?php echo $conteos['ejercicio'] ?? 0; ?></div>
+                <div class="stat-label">Ejercicio</div>
+            </div>
+            <div class="stat-card stat-mentalidad">
+                <div class="stat-emoji">🧠</div>
+                <div class="stat-number"><?php echo $conteos['mentalidad'] ?? 0; ?></div>
+                <div class="stat-label">Mentalidad</div>
+            </div>
+            <div class="stat-card stat-recovery">
+                <div class="stat-emoji">😴</div>
+                <div class="stat-number"><?php echo $conteos['recovery'] ?? 0; ?></div>
+                <div class="stat-label">Recuperación</div>
+            </div>
+            <div class="stat-card stat-general">
+                <div class="stat-emoji">💡</div>
+                <div class="stat-number"><?php echo $conteos['general'] ?? 0; ?></div>
+                <div class="stat-label">General</div>
+            </div>
         </div>
 
         <!-- Resultados -->
-        <div class="mb-6">
-            <p class="text-blue-700 font-medium">
-                <?php if ($busqueda): ?>
-                    Mostrando <?php echo count($tips); ?> resultado(s) para "<strong class="text-blue-900"><?php echo htmlspecialchars($busqueda); ?></strong>"
-                <?php else: ?>
-                    Mostrando <?php echo count($tips); ?> tip(s)
-                <?php endif; ?>
-                
-                <?php if ($categoria_seleccionada !== 'todas'): ?>
-                    en la categoría <strong class="text-blue-900"><?php echo formatear_categoria($categoria_seleccionada); ?></strong>
-                <?php endif; ?>
-            </p>
+        <div class="results-info">
+            <?php if ($busqueda): ?>
+                Mostrando <?php echo count($tips); ?> resultado(s) para "<span class="results-highlight"><?php echo htmlspecialchars($busqueda); ?></span>"
+            <?php else: ?>
+                Mostrando <?php echo count($tips); ?> tip(s)
+            <?php endif; ?>
+            
+            <?php if ($categoria_seleccionada !== 'todas'): ?>
+                en la categoría <span class="results-highlight"><?php echo formatear_categoria($categoria_seleccionada); ?></span>
+            <?php endif; ?>
         </div>
 
         <!-- Lista de tips -->
         <?php if (empty($tips)): ?>
-            <div class="bg-white rounded-xl shadow-lg p-12 text-center border border-blue-100">
-                <i class="fas fa-lightbulb text-6xl text-blue-300 mb-6"></i>
-                <h3 class="text-xl font-semibold text-blue-900 mb-3">No se encontraron tips</h3>
-                <p class="text-blue-600">
+            <div class="empty-state">
+                <i class="fas fa-lightbulb empty-icon"></i>
+                <h3 class="empty-title">No se encontraron tips</h3>
+                <p class="empty-text">
                     <?php if ($busqueda || $categoria_seleccionada !== 'todas'): ?>
                         Intenta cambiar los filtros o realizar una búsqueda diferente.
                     <?php else: ?>
@@ -262,30 +793,30 @@ $usuario_actual = gym_get_logged_in_user();
                 </p>
             </div>
         <?php else: ?>
-            <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div class="tips-grid">
                 <?php foreach ($tips as $tip): ?>
-                    <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100 hover:border-blue-200 transform hover:-translate-y-1">
+                    <div class="tip-card">
                         <!-- Header del tip -->
-                        <div class="p-6 pb-4">
-                            <div class="flex items-start justify-between mb-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo obtener_color_categoria($tip['categoria']); ?> border border-opacity-20">
+                        <div class="tip-header">
+                            <div class="tip-meta">
+                                <span class="category-badge <?php echo obtener_color_categoria($tip['categoria']); ?>">
                                     <?php echo obtener_icono_categoria($tip['categoria']); ?> 
                                     <?php echo formatear_categoria($tip['categoria']); ?>
                                 </span>
-                                <span class="text-xs text-blue-500 font-medium">
-                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                <span class="tip-date">
+                                    <i class="fas fa-calendar-alt" style="margin-right: 4px;"></i>
                                     <?php echo date('d/m/Y', strtotime($tip['fecha_creacion'])); ?>
                                 </span>
                             </div>
                             
-                            <h3 class="text-xl font-bold text-blue-900 mb-3 line-clamp-2">
+                            <h3 class="tip-title">
                                 <?php echo htmlspecialchars($tip['titulo']); ?>
                             </h3>
                         </div>
 
                         <!-- Contenido del tip -->
-                        <div class="px-6 pb-4">
-                            <div class="text-blue-700 text-sm leading-relaxed">
+                        <div class="tip-content">
+                            <div class="tip-text">
                                 <?php 
                                 $contenido = htmlspecialchars($tip['contenido']);
                                 $contenido_corto = strlen($contenido) > 150 ? substr($contenido, 0, 150) . '...' : $contenido;
@@ -293,9 +824,9 @@ $usuario_actual = gym_get_logged_in_user();
                                 <p class="tip-content-preview"><?php echo $contenido_corto; ?></p>
                                 
                                 <?php if (strlen($tip['contenido']) > 150): ?>
-                                    <p class="tip-content-full hidden"><?php echo $contenido; ?></p>
-                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium mt-3 toggle-content transition-colors">
-                                        Leer más <i class="fas fa-chevron-down ml-1"></i>
+                                    <p class="tip-content-full"><?php echo $contenido; ?></p>
+                                    <button class="toggle-content">
+                                        Leer más <i class="fas fa-chevron-down" style="margin-left: 4px;"></i>
                                     </button>
                                 <?php endif; ?>
                             </div>
@@ -303,9 +834,9 @@ $usuario_actual = gym_get_logged_in_user();
 
                         <!-- Footer del tip -->
                         <?php if ($tip['autor_nombre']): ?>
-                            <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-b-xl border-t border-blue-100">
-                                <div class="flex items-center text-sm text-blue-600">
-                                    <i class="fas fa-user-circle mr-2 text-blue-500"></i>
+                            <div class="tip-footer">
+                                <div class="tip-author">
+                                    <i class="fas fa-user-circle"></i>
                                     <span>Por <strong><?php echo htmlspecialchars($tip['autor_nombre'] . ' ' . $tip['autor_apellido']); ?></strong></span>
                                 </div>
                             </div>
@@ -323,19 +854,18 @@ $usuario_actual = gym_get_logged_in_user();
             
             toggleButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    const card = this.closest('.bg-white');
+                    const card = this.closest('.tip-card');
                     const preview = card.querySelector('.tip-content-preview');
                     const full = card.querySelector('.tip-content-full');
-                    const icon = this.querySelector('i');
                     
-                    if (full.classList.contains('hidden')) {
-                        preview.classList.add('hidden');
-                        full.classList.remove('hidden');
-                        this.innerHTML = 'Leer menos <i class="fas fa-chevron-up ml-1"></i>';
+                    if (full.classList.contains('show')) {
+                        preview.classList.remove('hide');
+                        full.classList.remove('show');
+                        this.innerHTML = 'Leer más <i class="fas fa-chevron-down" style="margin-left: 4px;"></i>';
                     } else {
-                        preview.classList.remove('hidden');
-                        full.classList.add('hidden');
-                        this.innerHTML = 'Leer más <i class="fas fa-chevron-down ml-1"></i>';
+                        preview.classList.add('hide');
+                        full.classList.add('show');
+                        this.innerHTML = 'Leer menos <i class="fas fa-chevron-up" style="margin-left: 4px;"></i>';
                     }
                 });
             });
@@ -346,29 +876,5 @@ $usuario_actual = gym_get_logged_in_user();
             this.form.submit();
         });
     </script>
-
-    <style>
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        /* Efectos adicionales para el tema azul */
-        .bg-white {
-            backdrop-filter: blur(10px);
-        }
-        
-        /* Animaciones suaves */
-        * {
-            transition: all 0.2s ease;
-        }
-        
-        /* Hover effects mejorados */
-        .bg-white:hover {
-            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04);
-        }
-    </style>
 </body>
 </html>

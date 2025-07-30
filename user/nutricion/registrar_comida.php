@@ -87,12 +87,21 @@ $objetivos = $alimentosManager->obtenerObjetivos($usuario['id']);
     <title>Seguimiento Nutricional</title>
     <link rel="stylesheet" href="/assets/css/contador.css">
     
+    
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🍎 Seguimiento Nutricional</h1>
             <p>Bienvenido, <?php echo htmlspecialchars($usuario['nombre']); ?></p>
+               <a 
+                href="/dashboard.php" 
+                style="display: inline-flex; align-items: center; padding: 0.5rem 1rem; background-color: rgba(255, 255, 255, 0.15); color: white; border-radius: 9999px; text-decoration: none; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.2); transition: all 0.2s ease;"
+                onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.25)'; this.style.transform='translateY(-2px)';"
+                onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(0)';"
+            >
+                ← Volver al Dashboard
+            </a>
         </div>
 
         <!-- Navigation de fechas -->

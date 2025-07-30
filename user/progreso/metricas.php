@@ -115,7 +115,6 @@ try {
 // Obtener la última medición para prellenar el formulario
 $ultima_medicion = !empty($historial_mediciones) ? $historial_mediciones[0] : null;
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -124,78 +123,31 @@ $ultima_medicion = !empty($historial_mediciones) ? $historial_mediciones[0] : nu
     <title>Registro de Métricas Corporales</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .metric-card {
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-        }
-        .metric-input {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .metric-input:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-        }
-        .section-title {
-            color: #495057;
-            border-bottom: 2px solid #0d6efd;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 12px 30px;
-            font-weight: 500;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #0b5ed7 0%, #520dc2 100%);
-            transform: translateY(-2px);
-        }
-        .history-card {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #0d6efd;
-        }
-        .metric-label {
-            font-weight: 500;
-            color: #495057;
-        }
-        .input-group-text {
-            background-color: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-right: none;
-        }
-        .form-control.metric-input {
-            border-left: none;
-        }
-        .progress-indicator {
-            height: 8px;
-            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
-            border-radius: 4px;
-            margin-top: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/css/metrica.css">
+   
 </head>
 <body>
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="display-5">
-                <i class="fas fa-ruler-combined text-primary"></i> Registro de Métricas
-            </h1>
-            <a href="/dashboard.php" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Volver al Dashboard
-            </a>
+    <!-- Header con efecto glass mejorado -->
+    <header class="glass-header">
+        <div class="header-container">
+            <!-- Logo y título -->
+            <div class="logo-section">
+                <img src="/assets/images/gym (1).png" alt="Logo">
+                <h1 class="site-title">Progreso de Métricas</h1>
+            </div>
+            
+            <!-- Botones -->
+            <div class="header-buttons">
+                
+                <a href="/dashboard.php" class="btn-back">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    <span>Volver</span>
+                </a>
+            </div>
         </div>
+    </header>
 
+    <div class="container py-4">
         <?php if ($mensaje): ?>
             <div class="alert alert-<?php echo $tipo_mensaje; ?> alert-dismissible fade show" role="alert">
                 <i class="fas fa-<?php echo $tipo_mensaje == 'success' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
@@ -505,7 +457,7 @@ $ultima_medicion = !empty($historial_mediciones) ? $historial_mediciones[0] : nu
                         </div>
                         
                         <div class="text-center mt-3">
-                            <a href="historial_metricas.php" class="btn btn-outline-primary btn-sm">
+                            <a href="/user/progreso/progres.php" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-chart-line"></i> Ver Historial Completo
                             </a>
                         </div>

@@ -195,7 +195,7 @@ if (!empty($medidasRecientes)) {
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Mi Perfil</a></li>
-                        <li><a class="dropdown-item" href="user/pagos/pagos.php"><i class="fas fa-credit-card me-2"></i>Pagos</a></li>
+                        
                         <li><a class="dropdown-item" href="settings.php"><i class="fas fa-cog me-2"></i>Configuración</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
@@ -209,89 +209,87 @@ if (!empty($medidasRecientes)) {
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <!-- Sidebar -->
-<nav class="sidebar" id="sidebar">
-    <div class="position-sticky pt-3">
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link active" href="dashboard.php">
-                    <i class="fas fa-home me-2"></i>
-                    Dashboard
-                </a>
-            </li>
+    <nav class="sidebar" id="sidebar">
+        <div class="position-sticky pt-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="dashboard.php">
+                        <i class="fas fa-home me-2"></i>
+                        Dashboard
+                    </a>
+                </li>
 
-            <!-- Menú desplegable para Rutinas -->
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="rutinasDropdown">
-                    <i class="fas fa-running me-2"></i>
-                    Rutinas
-                    <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
-                </a>
-                <ul class="dropdown-menu" id="rutinasSubmenu">
-                    <li>
-                        <a class="dropdown-item" href="../user/rutinas/rutinas_user.php">
-                            <i class="fas fa-list me-2"></i>
-                            Ver Rutinas
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="user/rutinas/crear.php">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            Crear Rutina
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                <!-- Menú desplegable para Rutinas -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="rutinasDropdown">
+                        <i class="fas fa-running me-2"></i>
+                        Rutinas
+                        <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
+                    </a>
+                    <ul class="dropdown-menu" id="rutinasSubmenu">
+                        <li>
+                            <a class="dropdown-item" href="../user/rutinas/rutinas_user.php">
+                                <i class="fas fa-list me-2"></i>
+                                Ver Rutinas
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="user/rutinas/crear_rutinas.php">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Crear Rutina
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-            <li class="nav-item">
-                <a class="nav-link" href="/user/nutricion/nutricion.php">
-                    <i class="fas fa-apple-alt me-2"></i>
-                    Nutrición
-                </a>
-            </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/user/nutricion/nutricion.php">
+                        <i class="fas fa-apple-alt me-2"></i>
+                        Nutrición
+                    </a>
+                </li>
 
-            <!-- Menú desplegable para Progreso -->
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="progresoDropdown">
-                    <i class="fas fa-chart-line me-2"></i>
-                    Progreso
-                    <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
-                </a>
-                <ul class="dropdown-menu" id="progresoSubmenu">
-                    <li>
-                        <a class="dropdown-item" href="../user/progreso/progres.php">
-                            <i class="fas fa-eye me-2"></i>
-                            Ver Progreso
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="../user/progreso/metricas.php">
-                            <i class="fas fa-sliders-h me-2"></i>
-                            Métricas
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                <!-- Menú desplegable para Progreso -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="progresoDropdown">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Progreso
+                        <i class="fas fa-chevron-down dropdown-icon ms-1"></i>
+                    </a>
+                    <ul class="dropdown-menu" id="progresoSubmenu">
+                        <li>
+                            <a class="dropdown-item" href="../user/progreso/progres.php">
+                                <i class="fas fa-eye me-2"></i>
+                                Ver Progreso
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="../user/progreso/metricas.php">
+                                <i class="fas fa-sliders-h me-2"></i>
+                                Métricas
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-           
+                <li class="nav-item">
+                    <a class="nav-link" href="../user/tips/tips.php">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Tips
+                    </a>
+                </li>
 
-            <li class="nav-item">
-                <a class="nav-link" href="../user/tips/tips.php">
-                    <i class="fas fa-lightbulb me-2"></i>
-                    Tips
-                </a>
-            </li>
-
-            <?php if ($user['tipo'] == 'admin' || $user['tipo'] == 'entrenador'): ?>
-            <li class="nav-item">
-                <a class="nav-link" href="admin.php">
-                    <i class="fas fa-users-cog me-2"></i>
-                    Administración
-                </a>
-            </li>
-            <?php endif; ?>
-        </ul>
-    </div>
-</nav>
+                <?php if ($user['tipo'] == 'admin' || $user['tipo'] == 'entrenador'): ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="admin.php">
+                        <i class="fas fa-users-cog me-2"></i>
+                        Administración
+                    </a>
+                </li>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </nav>
 
     <!-- Main content -->
     <main class="main-content">
@@ -323,7 +321,7 @@ if (!empty($medidasRecientes)) {
         </div>
 
         <!-- Stats Cards -->
-        <div class="row mb-4">
+        <div class="row mb-4 d-lg-flex d-none">
             <div class="col-lg-3 col-md-6 mb-3">
                 <div class="stat-card">
                     <div class="d-flex align-items-center">
@@ -366,26 +364,81 @@ if (!empty($medidasRecientes)) {
                 </div>
             </div>
             
-           
-<!-- En la sección de Stats Cards, reemplazar la tarjeta de progreso: -->
-<div class="col-lg-3 col-md-6 mb-3">
-    <div class="stat-card">
-        <div class="d-flex align-items-center">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
-                <i class="<?php echo $progreso_icono; ?>"></i>
-            </div>
-            <div class="ms-3">
-                <h3 class="mb-0 <?php echo $progreso_clase; ?>"><?php echo $progreso_peso; ?></h3>
-                <small class="text-muted"><?php echo $progreso_descripcion; ?></small>
-                <?php if ($fecha_ultima_medida && $dias_desde_medida > 0): ?>
-                    <small class="d-block text-muted" style="font-size: 0.7rem;">
-                        Hace <?php echo $dias_desde_medida; ?> día<?php echo $dias_desde_medida > 1 ? 's' : ''; ?>
-                    </small>
-                <?php endif; ?>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
+                            <i class="<?php echo $progreso_icono; ?>"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0 <?php echo $progreso_clase; ?>"><?php echo $progreso_peso; ?></h3>
+                            <small class="text-muted"><?php echo $progreso_descripcion; ?></small>
+                            <?php if ($fecha_ultima_medida && $dias_desde_medida > 0): ?>
+                                <small class="d-block text-muted" style="font-size: 0.7rem;">
+                                    Hace <?php echo $dias_desde_medida; ?> día<?php echo $dias_desde_medida > 1 ? 's' : ''; ?>
+                                </small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+
+        <!-- Stats Cards Mobile - Grid de 2 columnas -->
+        <div class="mobile-grid-2 d-lg-none">
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0"><?php echo $userStats ? $userStats['total_asistencias'] : 0; ?></h3>
+                        <small class="text-muted">Total Asistencias</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #17a2b8, #6f42c1);">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0"><?php echo $userStats ? $userStats['racha_actual'] : 0; ?></h3>
+                        <small class="text-muted">Racha Actual</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                        <i class="fas fa-medal"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0"><?php echo $userStats ? $userStats['racha_maxima'] : 0; ?></h3>
+                        <small class="text-muted">Mejor Racha</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
+                        <i class="<?php echo $progreso_icono; ?>"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-0 <?php echo $progreso_clase; ?>"><?php echo $progreso_peso; ?></h3>
+                        <small class="text-muted"><?php echo $progreso_descripcion; ?></small>
+                        <?php if ($fecha_ultima_medida && $dias_desde_medida > 0): ?>
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">
+                                Hace <?php echo $dias_desde_medida; ?> día<?php echo $dias_desde_medida > 1 ? 's' : ''; ?>
+                            </small>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Información adicional de racha -->
         <?php if ($userStats): ?>
@@ -416,7 +469,7 @@ if (!empty($medidasRecientes)) {
         <?php endif; ?>
         
         <!-- Quick Actions -->
-        <div class="row mb-4">
+        <div class="row mb-4 d-lg-flex d-none">
             <div class="col-12">
                 <h4 class="mb-3">Acciones Rápidas</h4>
             </div>
@@ -448,6 +501,41 @@ if (!empty($medidasRecientes)) {
                 </a>
             </div>
             <div class="col-lg-3 col-md-6 mb-3">
+                <a href="/user/progreso/progres.php" class="quick-action-btn">
+                    <div class="text-center">
+                        <i class="fas fa-chart-bar fa-2x mb-2" style="color: #6f42c1;"></i>
+                        <h6>Ver Progreso</h6>
+                        <small class="text-muted">Revisa tus métricas</small>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Actions Mobile - Grid de 2 columnas -->
+        <div class="d-lg-none">
+            <h4 class="mb-3">Acciones Rápidas</h4>
+            <div class="mobile-grid-2">
+                <a href="/user/asitencia/registrar_asistencia.php" class="quick-action-btn">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2" style="color: #28a745;"></i>
+                        <h6>Marcar Asistencia</h6>
+                        <small class="text-muted">Registra tu día de gym</small>
+                    </div>
+                </a>
+                <a href="nueva_rutina.php" class="quick-action-btn">
+                    <div class="text-center">
+                        <i class="fas fa-plus-circle fa-2x mb-2" style="color: #007bff;"></i>
+                        <h6>Nueva Rutina</h6>
+                        <small class="text-muted">Empezar entrenamiento</small>
+                    </div>
+                </a>
+                <a href="/user/nutricion/registrar_comida.php" class="quick-action-btn">
+                    <div class="text-center">
+                        <i class="fas fa-utensils fa-2x mb-2" style="color: #fd7e14;"></i>
+                        <h6>Registrar Comida</h6>
+                        <small class="text-muted">Trackea tus macros</small>
+                    </div>
+                </a>
                 <a href="/user/progreso/progres.php" class="quick-action-btn">
                     <div class="text-center">
                         <i class="fas fa-chart-bar fa-2x mb-2" style="color: #6f42c1;"></i>
@@ -623,30 +711,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     }, true);
-            
-            // Hover para desktop
-            if (!isMobile()) {
-                dropdownToggle.addEventListener('mouseenter', function() {
-                    dropdownMenu.classList.add('show');
-                    this.classList.add('active');
-                });
-                
-                dropdownToggle.parentElement.addEventListener('mouseleave', function() {
-                    dropdownMenu.classList.remove('show');
-                    this.querySelector('.dropdown-toggle').classList.remove('active');
-                });
-            }
-            
-            // Cerrar menús al cambiar a desktop
-            window.addEventListener('resize', function() {
-                if (!isMobile()) {
-                    dropdownMenu.classList.remove('show');
-                    dropdownToggle.classList.remove('active');
-                }
-            });
-        });
-
-        
+});
     </script>
 </body>
 </html>
